@@ -13,11 +13,6 @@
       <h1>MY LIFE</h1>
       <p>20세부터 60세까지, 선택으로 만들어가는 나의 인생</p>
     </div>
-    <div class="header-actions">
-      <button id="saveBtn">저장</button>
-      <button id="loadBtn">불러오기</button>
-      <button id="newBtn" class="danger">새 게임</button>
-    </div>
   </header>
 
   <section id="startScreen">
@@ -54,7 +49,6 @@
           </select>
         </label>
 
-        <!-- 20년 전 연도 고정 + 월/일 분리 선택 UI -->
         <label class="input-label">
           생년월일
           <div class="birth-select-group">
@@ -115,105 +109,111 @@
   </section>
 
   <section id="gameScreen" class="hidden">
-    <div class="year-header">
+    <!-- 축소된 CURRENT LIFE 헤더 -->
+    <div class="year-header compact">
       <div>
         <span class="eyebrow">CURRENT LIFE</span>
-        <h2><span id="ageText">20</span>세 · <span id="yearText">2026</span>년</h2>
-        <p id="lifeTagline">나의 인생이 시작되었습니다.</p>
+        <h2><span id="ageText">20</span>세 (<span id="yearText">2026</span>년)</h2>
       </div>
       <div class="year-actions">
-        <button id="lifeRecordBtn">📖 인생 연표</button>
-        <button id="nextYearBtn" class="primary">다음 해로 →</button>
+        <button id="lifeRecordBtn" class="btn-sm">📖 연표</button>
+        <button id="nextYearBtn" class="primary btn-sm">다음 해 →</button>
       </div>
     </div>
 
-    <div class="status-grid">
-      <div class="stat-card"><span>직업</span><strong id="jobText">-</strong><small id="careerText">-</small></div>
-      <div class="stat-card"><span>연간 소득</span><strong id="incomeText">0원</strong><small id="incomeSub">-</small></div>
-      <div class="stat-card"><span>도시/주거</span><strong id="cityText">-</strong><small id="housingText">-</small></div>
-      <div class="stat-card"><span>순자산</span><strong id="netWorthText">0원</strong><small id="debtSub">부채 0원</small></div>
+    <!-- 통합 및 압축된 상단 컴팩트 스탯 그리드 (생활, 상태, 자산 통합) -->
+    <div class="status-grid compact-grid">
+      <div class="stat-card">
+        <span>💼 커리어</span>
+        <strong id="jobText">-</strong>
+        <small id="careerText">-</small>
+      </div>
+      <div class="stat-card">
+        <span>💵 소득 / 순자산</span>
+        <strong id="incomeText">0원</strong>
+        <small id="netWorthText">순자산 0원</small>
+      </div>
+      <div class="stat-card">
+        <span>🏠 주거 & 차량</span>
+        <strong id="housingText">-</strong>
+        <small id="carText">-</small>
+      </div>
+      <div class="stat-card">
+        <span>👨‍👩‍👧 가족 관계</span>
+        <strong id="familyText">미혼</strong>
+        <small id="marriageText">자녀 0명</small>
+      </div>
+      <div class="stat-card">
+        <span>📊 건강/행복/스트레스</span>
+        <div class="mini-status">
+          <span>❤️ <b id="healthText">90</b></span>
+          <span>😊 <b id="happinessText">70</b></span>
+          <span>🔥 <b id="stressText">25</b></span>
+        </div>
+      </div>
+      <div class="stat-card highlight-card">
+        <span>💰 총자산 / 주식보유</span>
+        <strong id="totalAsset">0원</strong>
+        <small id="stockSectorText">주식: 없음</small>
+      </div>
     </div>
 
-    <section class="panel career-panel">
-      <div class="panel-heading"><div><span class="eyebrow">CAREER SYSTEM V2.1</span><h2>나의 커리어</h2></div><span>직업과 경력을 별도 관리</span></div>
-      <div id="careerDetail" class="career-detail"></div>
+    <!-- YEARLY EVENT 패널이 바로 아래 위치 -->
+    <section class="panel event-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">YEARLY EVENT</span>
+          <h2 id="eventTitle">올해의 사건</h2>
+        </div>
+        <span id="eventType" class="badge">인생</span>
+      </div>
+      <p id="eventDescription"></p>
+      <div id="choices" class="choices"></div>
+
+      <div id="resultBox" class="result-box hidden">
+        <div class="result-title">✓ 올해의 결과</div>
+        <div id="resultText"></div>
+        <div id="resultChanges" class="result-changes"></div>
+      </div>
+
+      <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음 해로 →</button>
     </section>
 
-    <div class="main-grid">
-      <section class="panel event-panel">
-        <div class="panel-heading">
-          <div>
-            <span class="eyebrow">YEARLY EVENT</span>
-            <h2 id="eventTitle">올해의 사건</h2>
-          </div>
-          <span id="eventType" class="badge">인생</span>
-        </div>
-        <p id="eventDescription"></p>
-        <div id="choices" class="choices"></div>
-
-        <div id="resultBox" class="result-box hidden">
-          <div class="result-title">✓ 올해의 결과</div>
-          <div id="resultText"></div>
-          <div id="resultChanges" class="result-changes"></div>
-        </div>
-
-        <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음 해로 →</button>
-      </section>
-
-      <aside class="side-column">
-        <section class="panel">
-          <div class="panel-heading"><h2>나의 생활</h2></div>
-          <div class="life-list">
-            <div><span>🏠 집</span><strong id="houseText">-</strong></div>
-            <div><span>🚗 자동차</span><strong id="carText">-</strong></div>
-            <div><span>👨‍👩‍👧 가족</span><strong id="familyText">-</strong></div>
-            <div><span>💍 결혼</span><strong id="marriageText">미혼</strong></div>
-            <div><span>👶 자녀</span><strong id="childrenText">0명</strong></div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-heading"><h2>경제 상태</h2></div>
-          <div class="progress-row"><span>❤️ 건강</span><b id="healthText">90</b></div>
-          <div class="progress"><i id="healthBar"></i></div>
-          <div class="progress-row"><span>😊 행복</span><b id="happinessText">70</b></div>
-          <div class="progress"><i id="happinessBar"></i></div>
-          <div class="progress-row"><span>🔥 스트레스</span><b id="stressText">25</b></div>
-          <div class="progress"><i id="stressBar"></i></div>
-        </section>
-      </aside>
-    </div>
-
+    <!-- 세부 자산 현황 -->
     <section class="panel assets-panel">
       <div class="panel-heading">
-        <div><span class="eyebrow">ASSETS</span><h2>현재 자산</h2></div>
+        <div><span class="eyebrow">ASSETS</span><h2>현재 자산 현황</h2></div>
         <span>단위: 원</span>
       </div>
       <div class="asset-grid">
         <div><span>🏠 주택</span><strong id="houseAsset">0원</strong></div>
         <div><span>🚗 자동차</span><strong id="carAsset">0원</strong></div>
-        <div><span>📈 주식</span><strong id="stockAsset">0원</strong></div>
+        <div><span>📈 주식 (보유종목)</span><strong id="stockAsset">0원</strong></div>
         <div><span>💼 기타</span><strong id="etcAsset">0원</strong></div>
         <div><span>💵 현금</span><strong id="cashAsset">0원</strong></div>
-        <div class="highlight"><span>💰 총자산</span><strong id="totalAsset">0원</strong></div>
+        <div class="highlight"><span>💰 총자산</span><strong id="totalAssetSub">0원</strong></div>
       </div>
     </section>
 
+    <section class="panel career-panel">
+      <div class="panel-heading"><div><span class="eyebrow">CAREER SYSTEM</span><h2>나의 커리어</h2></div></div>
+      <div id="careerDetail" class="career-detail"></div>
+    </section>
+
     <section class="panel actions-panel">
-      <div class="panel-heading"><div><span class="eyebrow">LIFE DECISIONS</span><h2>자산 관리</h2></div></div>
+      <div class="panel-heading"><div><span class="eyebrow">DECISIONS</span><h2>자산 관리 & 결정</h2></div></div>
       <div class="action-buttons">
-        <button id="stockBuyBtn">📈 주식 1,000만원 매수</button>
-        <button id="stockSellBtn">📉 주식 1,000만원 매도</button>
+        <button id="stockBuyBtn">📈 주식 매수 (1,000만)</button>
+        <button id="stockSellBtn">📉 주식 매도 (1,000만)</button>
         <button id="houseBuyBtn">🏠 주택 구매</button>
         <button id="carBuyBtn">🚗 자동차 교체</button>
         <button id="careerBtn">💼 커리어 도전</button>
       </div>
-      <p class="hint">주택과 자동차는 소득·순자산·가족 상황에 따라 매년 업데이트되며, 직접 구매한 자산도 기록에 반영됩니다.</p>
     </section>
 
     <section class="panel history-panel">
       <div class="panel-heading">
-        <div><span class="eyebrow">LIFE HISTORY</span><h2>연도별 인생 & 자산 스탯 기록</h2></div>
+        <div><span class="eyebrow">LIFE HISTORY</span><h2>연도별 기록</h2></div>
         <span id="historyCount">0년</span>
       </div>
       <div class="chart-wrap"><canvas id="assetChart"></canvas></div>
@@ -241,8 +241,8 @@
 
   <section id="recordScreen" class="hidden">
     <div class="record-header">
-      <div><span class="eyebrow">MY LIFE STORY</span><h2>나의 인생 연표</h2><p>20세부터 지금까지 어떤 삶을 살았는지 한눈에 확인합니다.</p></div>
-      <button id="closeRecordBtn">게임으로 돌아가기</button>
+      <div><span class="eyebrow">MY LIFE STORY</span><h2>나의 인생 연표</h2></div>
+      <button id="closeRecordBtn">돌아가기</button>
     </div>
     <div id="timeline" class="timeline"></div>
   </section>
