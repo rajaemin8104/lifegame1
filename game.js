@@ -1,172 +1,133 @@
-const SAVE_KEY = "myLifePrototype_v21";
+const SAVE_KEY = "myLifePrototype_v31";
 const START_YEAR = 2026;
 const FIXED_BIRTH_YEAR = START_YEAR - 20;
 
+// GICS 11대 섹터 정의
+const GICS_SECTORS = [
+  { id: "IT", name: "💻 정보기술", desc: "애플, 마이크로소프트, 엔비디아 등" },
+  { id: "COMM", name: "📡 커뮤니케이션 서비스", desc: "구글, 메타, 넷플릭스 등" },
+  { id: "CDIS", name: "🛍️ 임의소비재", desc: "아마존, 테슬라, 자동차, 의류 등" },
+  { id: "CSTP", name: "🛒 필수소비재", desc: "P&G, 코카콜라, 식료품 등" },
+  { id: "HLTH", name: "🏥 헬스케어", desc: "일라이릴리, 유나이티드헬스, 제약 등" },
+  { id: "FIN", name: "💰 금융", desc: "버크셔 해서웨이, JP모건, 은행 등" },
+  { id: "IND", name: "🏭 산업재", desc: "보잉, 캐터필러, 방산, 건설기계 등" },
+  { id: "UTIL", name: "⚡ 유틸리티", desc: "넥스트에라 에너지, 전력, 수도 등" },
+  { id: "MATR", name: "🧪 소재", desc: "린데, 화학, 금속, 포장 등" },
+  { id: "ENGY", name: "🛢️ 에너지", desc: "엑슨모빌, 셰브론, 석유 및 정유 등" },
+  { id: "REST", name: "🏢 부동산", desc: "아메리칸 타워, 상업용 리츠 등" }
+];
+
+// 17개 직업군
 const jobs = {
-  employee:{id:"employee",name:"회사원",type:"private",desc:"기업의 직급과 성과에 따라 연봉이 상승하고 이직 기회가 생깁니다."},
-  developer:{id:"developer",name:"개발자",type:"private",desc:"기술 레벨과 회사 규모, 이직에 따라 소득이 크게 달라집니다."},
-  civil:{id:"civil",name:"공무원",type:"government",desc:"직급·호봉·근무평정에 따라 연간 총보수가 상승합니다."},
-  teacher:{id:"teacher",name:"교사",type:"public",desc:"호봉과 경력에 따라 소득이 증가하며 교육 경력이 쌓입니다."},
-  nurse:{id:"nurse",name:"간호사",type:"medical",desc:"임상 경력과 전문성에 따라 직급과 연봉이 상승합니다."},
-  police:{id:"police",name:"경찰",type:"public",desc:"계급과 근속에 따라 보수가 증가하고 승진 경쟁이 존재합니다."},
-  firefighter:{id:"firefighter",name:"소방관",type:"public",desc:"재난·안전 분야의 계급과 근속에 따라 보수가 증가합니다."},
-  finance:{id:"finance",name:"금융직",type:"private",desc:"성과와 직급에 따라 연봉 변동이 크고 승진 경쟁이 치열합니다."},
-  researcher:{id:"researcher",name:"연구원",type:"research",desc:"연구 경력과 전문성이 쌓이며 연구기관·기업으로 이직할 수 있습니다."},
-  engineer:{id:"engineer",name:"기술직",type:"technical",desc:"현장 경험과 자격·기술 숙련도에 따라 소득이 증가합니다."},
-  professional:{id:"professional",name:"전문직",type:"professional",desc:"전문자격과 경력에 따라 소득과 사회적 영향력이 크게 달라집니다."},
-  entrepreneur:{id:"entrepreneur",name:"자영업자",type:"business",desc:"직급 대신 사업 규모·매출·순이익이 성장하는 사업가 커리어입니다."}
+  large_corp: { id:"large_corp", name:"대기업 회사원", type:"private", desc:"탄탄한 복지와 높은 기본급, 성과급이 주어집니다.", canNegotiate:false },
+  sme_corp: { id:"sme_corp", name:"중소기업 회사원", type:"private", desc:"조직 내 영향력이 크며 매년 적극적인 연소득협상이 가능합니다.", canNegotiate:true },
+  developer: { id:"developer", name:"IT개발자", type:"private", desc:"실력과 시장 수요에 따라 연소득협상과 이직 프리미엄이 높습니다.", canNegotiate:true },
+  civil: { id:"civil", name:"공무원", type:"government", desc:"호봉표에 따라 정직하고 안정적인 보수가 지급됩니다.", canNegotiate:false, isGov:true },
+  teacher: { id:"teacher", name:"교사", type:"public", desc:"호봉과 근속연수에 따른 복지와 정년이 보장됩니다.", canNegotiate:false, isGov:true },
+  nurse: { id:"nurse", name:"간호사", type:"medical", desc:"전문 의료인으로서 연차와 협상에 따라 임금이 상승합니다.", canNegotiate:true },
+  doctor: { id:"doctor", name:"의사", type:"medical", desc:"높은 소득과 사회적 대우를 받는 최상위 전문 직군입니다.", canNegotiate:false },
+  police: { id:"police", name:"경찰", type:"public", desc:"국민 안전을 지키며 계급과 호봉에 따라 승급합니다.", canNegotiate:false, isGov:true },
+  firefighter: { id:"firefighter", name:"소방관", type:"public", desc:"재난 현장을 지키며 호봉에 따라 보수를 수령합니다.", canNegotiate:false, isGov:true },
+  finance: { id:"finance", name:"금융직", type:"private", desc:"성과급과 기본급 규모가 크지만 실적 압박이 동반됩니다.", canNegotiate:false },
+  researcher: { id:"researcher", name:"대기업 연구원", type:"research", desc:"석/박사급 기술 연구와 프로젝트 상여를 지급받습니다.", canNegotiate:false },
+  large_factory: { id:"large_factory", name:"대기업 생산직", type:"technical", desc:"강력한 호봉제와 잔업/특근 수당으로 안정성이 매우 높습니다.", canNegotiate:false },
+  professional: { id:"professional", name:"전문직(변호사/회계사)", type:"professional", desc:"고도의 전문성과 파트너 승진에 따라 고수익을 창출합니다.", canNegotiate:false },
+  factory_worker: { id:"factory_worker", name:"공장근로자", type:"technical", desc:"제조 현장에서 땀 흘리며 개인 성과에 따라 협상합니다.", canNegotiate:true },
+  celebrity: { id:"celebrity", name:"연예인", type:"entertainer", desc:"인지도에 따라 소득 편차가 극단적인 프리랜서 직업입니다.", canNegotiate:false },
+  entrepreneur: { id:"entrepreneur", name:"치킨집사장", type:"business", desc:"매장 확장과 프랜차이즈 성장에 따라 막대한 순익을 거둡니다.", canNegotiate:false },
+  unemployed: { id:"unemployed", name:"무직(구직중)", type:"none", desc:"현재 소득이 없으며 구직 및 재취업이 시급합니다.", canNegotiate:false }
 };
 
 const careerTracks = {
-  employee:{stages:[
-    {id:"new",title:"신입사원",promotionYears:1},{id:"staff",title:"사원",promotionYears:2},
-    {id:"assistant_manager",title:"대리",promotionYears:3},{id:"manager",title:"과장",promotionYears:4},
-    {id:"deputy_manager",title:"차장",promotionYears:4},{id:"general_manager",title:"부장",promotionYears:5},
-    {id:"executive",title:"임원",promotionYears:999}
-  ],pay:[36000000,41000000,48000000,58000000,68000000,80000000,110000000]},
-  developer:{stages:[
-    {id:"junior",title:"주니어 개발자",promotionYears:2},{id:"developer",title:"개발자",promotionYears:3},
-    {id:"senior",title:"시니어 개발자",promotionYears:4},{id:"lead",title:"테크 리드",promotionYears:4},
-    {id:"principal",title:"Principal Engineer",promotionYears:5},{id:"director",title:"개발 책임자",promotionYears:999}
-  ],pay:[42000000,54000000,72000000,90000000,115000000,145000000]},
-  teacher:{stages:[
-    {id:"new_teacher",title:"신규 교사",promotionYears:3},{id:"teacher",title:"교사",promotionYears:5},
-    {id:"senior_teacher",title:"선임 교사",promotionYears:7},{id:"lead_teacher",title:"수석교사",promotionYears:999}
-  ],pay:[39000000,48000000,60000000,72000000]},
-  nurse:{stages:[
-    {id:"staff_nurse",title:"간호사",promotionYears:3},{id:"charge_nurse",title:"책임간호사",promotionYears:4},
-    {id:"head_nurse",title:"수간호사",promotionYears:5},{id:"nursing_manager",title:"간호관리자",promotionYears:999}
-  ],pay:[39000000,50000000,65000000,82000000]},
-  police:{stages:[
-    {id:"constable",title:"순경",promotionYears:3},{id:"assistant_inspector",title:"경장",promotionYears:3},
-    {id:"inspector",title:"경사",promotionYears:4},{id:"senior_inspector",title:"경위",promotionYears:5},
-    {id:"chief_inspector",title:"경감",promotionYears:5},{id:"superintendent",title:"경정",promotionYears:6},
-    {id:"senior_superintendent",title:"총경",promotionYears:999}
-  ],pay:[38000000,43000000,50000000,58000000,70000000,85000000,105000000]},
-  firefighter:{stages:[
-    {id:"firefighter",title:"소방사",promotionYears:3},{id:"senior_firefighter",title:"소방교",promotionYears:3},
-    {id:"fire_sergeant",title:"소방장",promotionYears:4},{id:"fire_lieutenant",title:"소방위",promotionYears:5},
-    {id:"fire_captain",title:"소방경",promotionYears:5},{id:"fire_superintendent",title:"소방령",promotionYears:999}
-  ],pay:[38000000,43000000,50000000,58000000,70000000,88000000]},
-  finance:{stages:[
-    {id:"analyst",title:"금융 사원",promotionYears:2},{id:"associate",title:"대리",promotionYears:3},
-    {id:"manager",title:"과장",promotionYears:4},{id:"senior_manager",title:"차장",promotionYears:4},
-    {id:"director",title:"부장",promotionYears:5},{id:"executive",title:"임원",promotionYears:999}
-  ],pay:[45000000,60000000,78000000,98000000,125000000,180000000]},
-  researcher:{stages:[
-    {id:"junior",title:"연구원",promotionYears:3},{id:"researcher",title:"선임연구원",promotionYears:4},
-    {id:"senior",title:"책임연구원",promotionYears:5},{id:"principal",title:"수석연구원",promotionYears:999}
-  ],pay:[43000000,57000000,76000000,105000000]},
-  engineer:{stages:[
-    {id:"entry",title:"기술직 신입",promotionYears:2},{id:"skilled",title:"기술직",promotionYears:4},
-    {id:"senior",title:"선임 기술자",promotionYears:5},{id:"master",title:"숙련 기술자",promotionYears:999}
-  ],pay:[38000000,48000000,62000000,80000000]},
-  professional:{stages:[
-    {id:"trainee",title:"수습/초기 전문가",promotionYears:2},{id:"professional",title:"전문가",promotionYears:4},
-    {id:"senior",title:"시니어 전문가",promotionYears:5},{id:"partner",title:"파트너/원장급",promotionYears:999}
-  ],pay:[50000000,80000000,130000000,220000000]},
-  entrepreneur:{stages:[
-    {id:"startup",title:"초기 사업가"},{id:"small",title:"소규모 사업가"},
-    {id:"growth",title:"성장 사업가"},{id:"owner",title:"사업주"},{id:"business_leader",title:"기업가"}
-  ],pay:[30000000,45000000,70000000,110000000,180000000]},
-  civil:{
-    stages:[
-      {rank:9,title:"9급 주무관",minYears:2},{rank:8,title:"8급 주무관",minYears:3},
-      {rank:7,title:"7급 주무관",minYears:4},{rank:6,title:"6급 팀장",minYears:4},
-      {rank:5,title:"5급 사무관",minYears:5},{rank:4,title:"4급 서기관",minYears:5},
-      {rank:3,title:"3급 부이사관",minYears:6},{rank:2,title:"2급 이사관",minYears:6},
-      {rank:1,title:"1급 관리관",minYears:999}
-    ]
-  }
+  large_corp: { stages: ["사원", "대리", "과장", "차장", "부장", "임원"], pay: [52000000, 65000000, 80000000, 95000000, 115000000, 160000000] },
+  sme_corp: { stages: ["사원", "대리", "과장", "차장", "부장"], pay: [33000000, 40000000, 48000000, 56000000, 68000000] },
+  developer: { stages: ["주니어", "미들", "시니어", "테크리드", "수석 아키텍트"], pay: [45000000, 60000000, 85000000, 110000000, 150000000] },
+  civil: { stages: ["9급 주무관", "8급 주무관", "7급 주무관", "6급 팀장", "5급 사무관"], pay: [32000000, 38000000, 46000000, 56000000, 70000000] },
+  teacher: { stages: ["신규교사", "1급정교사", "부장교사", "교감", "교장"], pay: [36000000, 47000000, 62000000, 75000000, 88000000] },
+  nurse: { stages: ["일반간호사", "책임간호사", "수간호사", "간호과장"], pay: [38000000, 48000000, 62000000, 78000000] },
+  doctor: { stages: ["인턴/레지던트", "전임의(펠로우)", "과장급 전문의", "원장"], pay: [65000000, 120000000, 190000000, 300000000] },
+  police: { stages: ["순경", "경장", "경사", "경위", "경감", "경정"], pay: [35000000, 42000000, 50000000, 60000000, 72000000, 88000000] },
+  firefighter: { stages: ["소방사", "소방교", "소방장", "소방위", "소방경"], pay: [35000000, 42000000, 50000000, 60000000, 72000000] },
+  finance: { stages: ["주임", "대리", "과장", "차장", "부장", "지점장/이사"], pay: [55000000, 72000000, 95000000, 120000000, 160000000, 220000000] },
+  researcher: { stages: ["선임연구원", "책임연구원", "수석연구원", "연구위원"], pay: [58000000, 78000000, 105000000, 140000000] },
+  large_factory: { stages: ["사원", "조장", "반장", "직장", "기정"], pay: [48000000, 62000000, 76000000, 92000000, 110000000] },
+  professional: { stages: ["어쏘", "시니어", "주니어파트너", "대표 파트너"], pay: [70000000, 110000000, 170000000, 280000000] },
+  factory_worker: { stages: ["신입사원", "숙련공", "선임공", "생산반장"], pay: [32000000, 38000000, 45000000, 54000000] },
+  celebrity: { stages: ["신인/무명", "라이징 스타", "인지도 주연급", "탑스타"], pay: [20000000, 50000000, 150000000, 500000000] },
+  entrepreneur: { stages: ["1호점 초기창업", "1,2,3호점 주인", "동네 프랜차이즈 대표", "대형 프랜차이즈 대표"], pay: [45000000, 120000000, 250000000, 600000000] },
+  unemployed: { stages: ["구직자"], pay: [0] }
 };
 
-const civilBaseMonthly = {
-  9:[2133000,2147600,2168000,2194000,2226100,2264600,2309900,2367500,2456700,2542700,2624400,2705900,2783900,2859800,2932300,3002300,3070800,3134500,3197300,3257000,3313400],
-  8:[2162100,2195700,2233800,2276600,2331700,2412900,2519600,2622400,2720300,2813000,2902700,2990300,3074500,3155100,3232400,3307100,3376800,3444300,3509300,3571100,3630200],
-  7:[2317100,2367900,2423800,2485200,2567100,2682600,2798700,2915800,3027100,3133300,3233400,3331900,3425300,3514500,3599900,3680600,3758100,3832100,3902000,3968400,4031800],
-  6:[2389500,2500700,2615200,2732400,2853100,2977100,3101500,3226200,3351300,3468700,3580000,3689600,3792700,3890000,3983600,4071300,4154900,4234100,4309100,4379600,4447600],
-  5:[2896400,3013400,3135000,3261300,3390900,3523000,3657300,3793200,3929600,4066800,4195300,4319000,4436400,4545900,4649400,4746800,4838400,4924800,5006300,5082700,5154500],
-  4:[3241200,3373500,3508000,3645700,3785200,3926200,4068300,4211100,4354500,4497700,4642100,4778100,4905100,5023800,5135500,5240900,5338700,5430100,5515500,5595300,5669800],
-  3:[3781700,3921600,4065700,4210800,4358300,4507200,4658000,4809000,4961400,5113600,5266200,5424200,5571200,5707600,5833400,5950500,6059400,6160700,6254300,6342100,6423300],
-  2:[4191600,4347100,4504700,4663700,4825100,4986500,5150200,5313600,5478200,5642500,5807700,5978600,6150500,6306200,6449600,6581000,6702000,6812700,6914900,7008100,7093400],
-  1:[4656100,4819300,4986600,5157700,5333000,5510400,5690400,5871900,6056100,6241300,6426000,6617100,6809200,7001800,7170100,7319600,7452100,7570100,7675800,7770600,7857800]
-};
-
-const civilTotalCompFactor = {9:1.38,8:1.36,7:1.34,6:1.32,5:1.30,4:1.29,3:1.28,2:1.27,1:1.26};
-
-const civilPromotionRules = {
-  9:{minimumYears:2,baseChance:.48,nextRank:8},
-  8:{minimumYears:3,baseChance:.38,nextRank:7},
-  7:{minimumYears:4,baseChance:.27,nextRank:6},
-  6:{minimumYears:4,baseChance:.18,nextRank:5},
-  5:{minimumYears:5,baseChance:.12,nextRank:4},
-  4:{minimumYears:5,baseChance:.08,nextRank:3},
-  3:{minimumYears:6,baseChance:.05,nextRank:2},
-  2:{minimumYears:6,baseChance:.03,nextRank:1},
-  1:{minimumYears:999,baseChance:0,nextRank:null}
-};
-
-const regionJobWeights = {
-  "서울":{finance:1.35,developer:1.30,professional:1.20,researcher:1.10,employee:1.15,civil:1.00},
-  "경기도":{employee:1.20,developer:1.15,engineer:1.15,researcher:1.10,civil:1.05},
-  "충청도":{researcher:1.35,engineer:1.20,employee:1.05,civil:1.10,teacher:1.10},
-  "강원도":{civil:1.20,teacher:1.20,firefighter:1.15,police:1.10,employee:1.00},
-  "전라도":{civil:1.15,teacher:1.15,professional:1.05,engineer:1.05,employee:1.00},
-  "경상도":{engineer:1.30,employee:1.15,finance:1.05,police:1.10,civil:1.05},
-  "제주도":{employee:1.10,professional:1.10,civil:1.15,entrepreneur:1.20}
-};
-const baseJobWeights = {
-  employee:20,developer:11,civil:14,teacher:8,nurse:8,police:6,firefighter:5,
-  finance:7,researcher:6,engineer:7,professional:4,entrepreneur:4
-};
-const jobCareerReasons = {
-  employee:"기업 취업 시장과 일반적인 사회초년생 채용 기회가 연결되었습니다.",
-  developer:"디지털 산업과 기술 수요가 당신의 경력 생성에 유리하게 작용했습니다.",
-  civil:"안정적인 공공부문 진입 가능성이 높은 경력으로 생성되었습니다.",
-  teacher:"교육 분야와 지역의 인력 수요가 반영되었습니다.",
-  nurse:"의료·보건 분야의 지속적인 인력 수요가 반영되었습니다.",
-  police:"공공안전 분야와 지역 수요가 반영되었습니다.",
-  firefighter:"재난·안전 분야의 지역 수요가 반영되었습니다.",
-  finance:"금융·기업 본사가 집중된 지역의 산업 구조가 반영되었습니다.",
-  researcher:"연구기관·산업단지·대학 인접성이 반영되었습니다.",
-  engineer:"제조·건설·기술 산업의 지역 수요가 반영되었습니다.",
-  professional:"전문 서비스 시장과 자격 기반 진로 가능성이 반영되었습니다.",
-  entrepreneur:"취업 대신 독립적인 사업 경로를 선택할 가능성이 생성되었습니다."
-};
-const careerLabels = {
-  employee:"직급·성과형",developer:"기술 레벨·이직형",civil:"직급·호봉·승진형",
-  teacher:"호봉·경력형",nurse:"임상경력·승진형",police:"계급·승진형",
-  firefighter:"계급·승진형",finance:"성과·승진형",researcher:"연구경력형",
-  engineer:"숙련·자격형",professional:"전문성·성과형",entrepreneur:"사업규모·순이익형"
-};
-
-const housingLevels = [
-  {name:"원룸 월세",city:"지방 중소도시",minIncome:0,minNet:-1e12,houseValue:0},
-  {name:"오피스텔 월세",city:"광역시",minIncome:32000000,minNet:30000000,houseValue:0},
-  {name:"소형 아파트 전세",city:"수도권",minIncome:48000000,minNet:90000000,houseValue:0},
-  {name:"84㎡ 아파트 전세",city:"수도권",minIncome:65000000,minNet:180000000,houseValue:0},
-  {name:"84㎡ 아파트 자가",city:"수도권",minIncome:75000000,minNet:350000000,houseValue:450000000},
-  {name:"대형 아파트 자가",city:"서울",minIncome:100000000,minNet:900000000,houseValue:1200000000},
-  {name:"고급 아파트/주택",city:"서울",minIncome:180000000,minNet:2000000000,houseValue:2500000000}
+// GICS 33개 테마별 주가 연동 이벤트
+const GICS_EVENTS = [
+  { up:"IT", down:"COMM", title:"글로벌 AI 데이터센터 대규모 증설 발표", desc:"빅테크의 AI 칩 및 클라우드 하드웨어 수요가 폭발하며 정보기술(IT) 섹터가 급등합니다. 반면 투자비 부담 증가로 통신 및 플랫폼(커뮤니케이션) 수익성은 단기 악화됩니다." },
+  { up:"IT", down:"REST", title:"스마트 팩토리 및 초고속 클라우드 전환 가속화", desc:"기업들의 IT 인프라 투자가 집중되며 IT 소프트웨어/반도체가 초강세를 보입니다. 반면 재택 근무 정착으로 전통 상업용 부동산(리츠) 공실률이 증가합니다." },
+  { up:"IT", down:"IND", title:"차세대 온디바이스 AI 기기 대유행", desc:"스마트 디바이스 및 반도체 업종(IT)이 실적 서프라이즈를 기록합니다. 반면 공급망 이슈로 기존 부품을 수급하던 전통 기계 조립(산업재) 섹터는 타격을 입습니다." },
+  { up:"COMM", down:"IND", title:"남북 평화회담 전격 개최 및 문화 교류 합의", desc:"문화 콘텐츠 개방과 통신 인프라 연결 기대감에 커뮤니케이션 서비스가 급등합니다. 반면 긴장 완화로 방산/무기 제조업(산업재) 주가는 급락합니다." },
+  { up:"COMM", down:"CDIS", title:"글로벌 초대작 OTT 시리즈 전 세계 1위 흥행", desc:"미디어 콘텐츠 및 스트리밍 플랫폼(커뮤니케이션) 매출이 사상 최고치를 달성합니다. 반면 소비자들의 집콕 시간이 늘며 의류, 레저 등 경기소비재(임의소비재) 지출은 위축됩니다." },
+  { up:"COMM", down:"REST", title:"메타버스 디지털 가상 오피스 상용화 성공", desc:"가상 플랫폼 및 디지털 광고(커뮤니케이션) 생태계가 번창합니다. 반면 실물 사무실 수요가 감소하며 오피스 리츠(부동산) 자산가치는 하락세를 면치 못합니다." },
+  { up:"CDIS", down:"CSTP", title:"소비자 심리지수 10년 만에 최고치 경신", desc:"경기 회복 기대감으로 명품, 자동차, 고급 패션(임의소비재) 판매가 폭발합니다. 반면 안정성 위주의 생필품(필수소비재) 방어주 섹터는 투자자들의 매도로 약세를 보입니다." },
+  { up:"CDIS", down:"UTIL", title:"전기차 파격 보조금 및 신차 사전예약 돌풍", desc:"글로벌 전기 완성차 및 관련 소비재 업종이 랠리를 펼칩니다. 반면 전력망 과부하 우려와 발전 원가 규제로 전력 공기업(유틸리티)의 부담이 커집니다." },
+  { up:"CDIS", down:"FIN", title:"보복 소비 열풍 및 해외 명품 관광 대호황", desc:"소비자들의 카드 지출과 명품 구매(임의소비재)가 급증합니다. 반면 과도한 가계부채 증가로 금융권(금융)의 연체율 경고등이 켜지며 금융주가 하락합니다." },
+  { up:"CSTP", down:"CDIS", title:"글로벌 경기 침체 공포 및 안전 소비 확산", desc:"불황이 닥치자 외식과 쇼핑을 줄이고 가공식품, 필수 식료품(필수소비재)을 찾는 수요가 몰립니다. 반면 자동차, 고가 의류 등 임의소비재 기업들은 직격탄을 맞습니다." },
+  { up:"CSTP", down:"IT", title:"스태그플레이션 우려 속 배당 방어주 재조명", desc:"현금 흐름이 튼튼한 식음료, 생활용품(필수소비재) 기업으로 자금이 집중됩니다. 반면 밸류에이션 부담이 컸던 고성장 기술주(IT)는 큰 폭의 조정을 받습니다." },
+  { up:"CSTP", down:"MATR", title:"생필품 가격 인상 수용 및 마진 개선", desc:"소비재 대기업들이 판매가를 인상하며 필수소비재 마진이 급증합니다. 반면 원자재를 비싸게 사서 싸게 납품해야 하는 화학/포장 소재(소재) 기업의 채산성은 악화됩니다." },
+  { up:"HLTH", down:"ENGY", title:"신종 바이러스 대유행 및 치료제 FDA 긴급 승인", desc:"백신, 치료제, 바이오 의약품(헬스케어) 섹터가 폭등세를 기록합니다. 반면 전 세계 이동 봉쇄 조치로 인해 원유 소비가 급감하며 에너지 정유주가 폭락합니다." },
+  { up:"HLTH", down:"FIN", title:"기적의 비만·항노화 혁신 신약 상용화", desc:"글로벌 제약바이오(헬스케어) 기업들의 시가총액이 급증합니다. 반면 보험사들의 실손/치료비 지급 청구가 사상 최대로 폭증하며 대형 보험(금융) 섹터가 약세를 보입니다." },
+  { up:"HLTH", down:"MATR", title:"정부 바이오 헬스케어 특별 육성법 제정", desc:"의료기기 및 제약주(헬스케어)에 대규모 국가 펀드가 유입됩니다. 반면 전통 중화학 및 플라스틱(소재) 기업들에 대한 환경 규제가 강화되며 소재주가 하락합니다." },
+  { up:"FIN", down:"REST", title:"중앙은행의 가파른 기준금리 인상 단행", desc:"예대마진(이자이익)이 급증하며 시중은행과 금융지주(금융) 주가가 날아오릅니다. 반면 대출 이자 부담이 커지며 부동산(리츠) 시장은 급격한 침체기에 진입합니다." },
+  { up:"FIN", down:"IT", title:"글로벌 핀테크 규제 강화 및 전통 금융 규제 완화", desc:"제도권 대형 은행과 증권사(금융)의 독점적 시장 지위가 공고해집니다. 반면 핀테크를 추진하던 IT 플랫폼 및 빅테크(IT)는 성장세가 꺾이며 주가가 하락합니다." },
+  { up:"FIN", down:"UTIL", title:"시장 채권 금리 급등 및 자금 시장 경색", desc:"단기 자금 시장을 장악한 대형 투자은행(금융)의 수수료 수익이 급증합니다. 반면 대규모 설비 차입금이 많은 전력/가스(유틸리티) 기업들은 이자 비용 폭탄을 맞습니다." },
+  { up:"IND", down:"COMM", title:"국제 안보 위기 고조 및 각국 국방비 증액", desc:"방위산업체, 항공우주, 특수 방산 장비(산업재) 수주가 쏟아지며 주가가 급등합니다. 반면 소비 심리와 콘텐츠(커뮤니케이션) 시장은 위축됩니다." },
+  { up:"IND", down:"REST", title:"국가 주도 초대형 인프라 재건 사업 확정", desc:"건설 기계, 철도, 엔지니어링(산업재) 섹터가 역사적 호황기를 맞이합니다. 반면 인프라 공사 장기화로 주변 구도심 상업용 빌딩(부동산) 임대료는 하락합니다." },
+  { up:"IND", down:"CSTP", title:"글로벌 물류 및 해운 운임 지수 사상 최고치", desc:"조선소, 컨테이너 화물, 물류 장비(산업재) 업체들이 역대급 영업이익을 달성합니다. 반면 수입 물류비가 폭등한 필수 식료품/가공(필수소비재) 업체들은 마진이 급감합니다." },
+  { up:"UTIL", down:"ENGY", title:"원자력 및 청정 공공전력 공급 체계 개편", desc:"안정적인 공공 전력망을 보유한 유틸리티 기업들의 기업가치가 재평가받습니다. 반면 화석연료 감축 기조 속에 정유/석유(에너지) 기업의 입지는 좁아집니다." },
+  { up:"UTIL", down:"IT", title:"주식 시장 대폭락 속 대표 안전자산 부각", desc:"증시가 폭락하자 배당 수익률이 높고 국가가 보장하는 전력/가스(유틸리티)로 자금이 대피합니다. 반면 거품이 빠지며 고성장 IT/반도체 주식은 투매를 맞습니다." },
+  { up:"UTIL", down:"CDIS", title:"정부의 전기·수도 공공요금 현실화 승인", desc:"오랜 적자에 시달리던 유틸리티 공기업들의 흑자 전환이 가시화됩니다. 반면 가계의 공공요금 지출 증가로 외식/의류/레저(임의소비재) 소비는 얼어붙습니다." },
+  { up:"MATR", down:"CDIS", title:"핵심 광물 및 2차전지 양극재 수급난 심화", desc:"화학, 특수합금, 희토류 정제(소재) 기업들의 판가가 폭등하며 어닝 서프라이즈를 기록합니다. 반면 부품 단가가 치솟은 자동차 및 가전(임의소비재) 완제품 제조사는 실적이 급감합니다." },
+  { up:"MATR", down:"REST", title:"글로벌 친환경 신소재 의무화 규제 시행", desc:"생분해 플라스틱과 친환경 패키징(소재) 기업들이 독점 공급 계약을 체결합니다. 반면 건축 자재 기준 강화로 건설 비용이 폭등하며 상업용 리츠(부동산) 개발이 올스톱됩니다." },
+  { up:"MATR", down:"HLTH", title:"반도체·배터리용 초고순도 화학 물질 독점 개발", desc:"첨단 산업의 기초 소재를 장악한 화학/소재 섹터가 폭등합니다. 반면 R&D 자금이 소재 기술로 분산되며 제약바이오(헬스케어) 임상 투자금은 위축됩니다." },
+  { up:"ENGY", down:"COMM", title:"산유국 협의체(OPEC+) 전격 감산 및 유가 폭등", desc:"국제 유가가 배럴당 120달러를 돌파하며 정유·시추(에너지) 기업들이 사상 최대 흑자를 냅니다. 반면 고유가로 글로벌 경기 둔화가 촉발되며 광고(커뮤니케이션) 시장이 직격탄을 맞습니다." },
+  { up:"ENGY", down:"IND", title:"전 세계 LNG 가스관 공급 차단 사태", desc:"천연가스 및 석유(에너지) 메이저 기업들의 현금 창출력이 극대화됩니다. 반면 연료비 폭탄을 맞은 항공, 해운, 중공업(산업재) 기업들은 영업손실로 전환됩니다." },
+  { up:"ENGY", down:"UTIL", title:"화석연료 화력 발전 긴급 재가동 승인", desc:"원유와 발전용 가스(에너지) 가격이 치솟으며 정유사가 웃습니다. 반면 원자재를 비싸게 사서 전기를 만들어야 하는 전력 발전(유틸리티) 업체들은 적자 폭이 급증합니다." },
+  { up:"REST", down:"FIN", title:"초저금리 기조 진입 및 상업용 부동산 리츠 부활", desc:"낮은 조달 금리로 대규모 빌딩을 매입한 부동산(리츠)의 배당 매력과 주가가 급등합니다. 반면 순이자마진(NIM)이 축소된 시중 대형 은행(금융)의 주가는 하락세를 탑니다." },
+  { up:"REST", down:"MATR", title:"도심 대규모 스마트시티 재개발 완공 호조", desc:"부동산 리츠 자산가치가 급상승하며 투자자들의 환호를 받습니다. 반면 원자재 납품 단가 인하 압박을 받은 철강/시멘트(소재) 기업들의 마진은 축소됩니다." },
+  { up:"REST", down:"ENGY", title:"친환경 그린 리츠(Green REITs) 대세화", desc:"태양광 자립형 친환경 스마트 빌딩을 보유한 부동산 섹터에 글로벌 ESG 자금이 쏟아집니다. 반면 전통 탄소배출 화석연료(에너지) 기업들은 매도 대상이 됩니다." }
 ];
 
-const cars = [
-  {name:"중고 경차",minIncome:0,minNet:-1e12,value:5000000},
-  {name:"현대 아반떼급",minIncome:35000000,minNet:30000000,value:22000000},
-  {name:"현대 쏘나타 / 기아 K5",minIncome:50000000,minNet:120000000,value:35000000},
-  {name:"그랜저 / 중형 SUV",minIncome:70000000,minNet:300000000,value:55000000},
-  {name:"GV70 / 팰리세이드급",minIncome:100000000,minNet:700000000,value:80000000},
-  {name:"고급 세단 / 대형 SUV",minIncome:180000000,minNet:1800000000,value:130000000}
+const housingLevels = [
+  { level: 0, name:"고시원", city:"지방 중소도시", minIncome:0, minNet:-1e12, deposit:5000000, houseValue:0 },
+  { level: 1, name:"원룸 월세", city:"지방 중소도시", minIncome:28000000, minNet:10000000, deposit:10000000, houseValue:0 },
+  { level: 2, name:"오피스텔 월세", city:"광역시", minIncome:36000000, minNet:30000000, deposit:20000000, houseValue:0 },
+  { level: 3, name:"소형 아파트 월세", city:"수도권", minIncome:50000000, minNet:90000000, deposit:30000000, houseValue:0 },
+  { level: 4, name:"84㎡ 아파트 전세", city:"수도권", minIncome:70000000, minNet:180000000, deposit:200000000, houseValue:0 },
+  { level: 5, name:"84㎡ 아파트 자가", city:"수도권", minIncome:80000000, minNet:350000000, deposit:0, houseValue:450000000 },
+  { level: 6, name:"대형 아파트 자가", city:"서울", minIncome:110000000, minNet:900000000, deposit:0, houseValue:1200000000 },
+  { level: 7, name:"고급 주택", city:"서울", minIncome:190000000, minNet:2000000000, deposit:0, houseValue:2500000000 }
+];
+
+const carLevels = [
+  { level: 0, name:"대중교통 이용", value:0 },
+  { level: 1, name:"중고 경차", value:5000000 },
+  { level: 2, name:"준중형 세단", value:22000000 },
+  { level: 3, name:"중형 세단/SUV", value:35000000 },
+  { level: 4, name:"고급 세단", value:55000000 },
+  { level: 5, name:"프리미엄 SUV", value:80000000 },
+  { level: 6, name:"럭셔리 플래그십", value:130000000 }
 ];
 
 const SEASONS = ["봄", "여름", "가을", "겨울"];
 
-let game=null, currentEvent=null, eventResolved=false;
-const $=id=>document.getElementById(id);
-const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Math.round(v)));
-const won=v=>{const n=Math.round(v);if(Math.abs(n)>=1e8)return `${(n/1e8).toFixed(Math.abs(n)%1e8===0?0:1)}억원`;return `${Math.round(n/10000).toLocaleString("ko-KR")}만원`;};
-const signedWon=v=>`${v>=0?"+":"-"}${won(Math.abs(v))}`;
-const chance=p=>`${Math.round(p*100)}%`;
+let game = null, currentEvent = null, eventResolved = false;
+let generatedProfileData = null;
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, Math.round(v)));
+const won = v => {
+  const n = Math.round(v);
+  if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(Math.abs(n) % 1e8 === 0 ? 0 : 1)}억원`;
+  return `${Math.round(n / 10000).toLocaleString("ko-KR")}만원`;
+};
 
 function initBirthUI() {
   const yearInput = $("playerBirthYear");
@@ -176,18 +137,14 @@ function initBirthUI() {
   if (!monthSelect || !daySelect) return;
 
   if (yearInput) {
-    if (yearInput.tagName === "INPUT" || yearInput.tagName === "SELECT") {
-      yearInput.value = `${FIXED_BIRTH_YEAR}년`;
-    } else {
-      yearInput.textContent = `${FIXED_BIRTH_YEAR}년`;
-    }
+    yearInput.value = `${FIXED_BIRTH_YEAR}년`;
+    yearInput.textContent = `${FIXED_BIRTH_YEAR}년`;
   }
 
   monthSelect.innerHTML = "";
   for (let m = 1; m <= 12; m++) {
     const opt = document.createElement("option");
-    const val = String(m).padStart(2, '0');
-    opt.value = val;
+    opt.value = String(m).padStart(2, '0');
     opt.textContent = `${m}월`;
     monthSelect.appendChild(opt);
   }
@@ -195,170 +152,237 @@ function initBirthUI() {
   function updateDays() {
     const selectedMonth = parseInt(monthSelect.value, 10) || 1;
     const lastDay = new Date(FIXED_BIRTH_YEAR, selectedMonth, 0).getDate();
-    const currentDay = daySelect.value;
+    const currentDayVal = daySelect.value;
 
     daySelect.innerHTML = "";
     for (let d = 1; d <= lastDay; d++) {
       const opt = document.createElement("option");
-      const val = String(d).padStart(2, '0');
-      opt.value = val;
+      opt.value = String(d).padStart(2, '0');
       opt.textContent = `${d}일`;
       daySelect.appendChild(opt);
     }
 
-    if (currentDay && parseInt(currentDay, 10) <= lastDay) {
-      daySelect.value = currentDay;
+    if (currentDayVal && parseInt(currentDayVal, 10) <= lastDay) {
+      daySelect.value = currentDayVal;
     } else {
       daySelect.value = "01";
     }
   }
 
-  monthSelect.onchange = () => {
-    updateDays();
-    if (typeof updateProfilePreview === "function") updateProfilePreview();
-  };
-
-  daySelect.onchange = () => {
-    if (typeof updateProfilePreview === "function") updateProfilePreview();
-  };
-
+  monthSelect.onchange = () => { updateDays(); updateProfilePreview(); };
+  daySelect.onchange = updateProfilePreview;
   updateDays();
-  if (typeof updateProfilePreview === "function") updateProfilePreview();
+  updateProfilePreview();
 }
 
 function getSelectedBirthDate() {
-  const monthSelect = $("playerBirthMonth");
-  const daySelect = $("playerBirthDay");
-  
-  const m = monthSelect ? monthSelect.value : "01";
-  const d = daySelect ? daySelect.value : "01";
+  const m = $("playerBirthMonth") ? $("playerBirthMonth").value : "01";
+  const d = $("playerBirthDay") ? $("playerBirthDay").value : "01";
   return `${FIXED_BIRTH_YEAR}-${m}-${d}`;
 }
 
-function profileSeed(profile){
-  const s=`${profile.name}|${profile.region}|${profile.gender}|${profile.birth}`;
-  let h=2166136261;
-  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
-  return (h>>>0);
-}
-function seededRandom(seed){
-  let x=seed>>>0;
-  return function(){x+=0x6D2B79F5;let t=x;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;}
-}
-function generateCareer(profile){
-  const rng=seededRandom(profileSeed(profile));
-  const region=regionJobWeights[profile.region]||{};
-  const weights=Object.entries(baseJobWeights).map(([key,w])=>[key,w*(region[key]||1)]);
-  const total=weights.reduce((a,x)=>a+x[1],0);
-  let n=rng()*total, selected=weights[weights.length-1][0];
-  for(const [key,w] of weights){n-=w;if(n<=0){selected=key;break;}}
-  return {jobKey:selected,seed:profileSeed(profile),reason:jobCareerReasons[selected]};
-}
-
-function currentCareerTitle(){
+function currentCareerTitle() {
+  if (!game || !game.career) return "무직";
+  if (jobs[game.jobKey] && jobs[game.jobKey].isGov) {
+    return `${game.career.title} (${game.career.govStep || 1}호봉)`;
+  }
   return game.career.title;
 }
 
-function currentAnnualPayForCareer(career){
-  if(career.type==="civil"){
-    const arr=civilBaseMonthly[career.rank]||civilBaseMonthly[9];
-    const base=arr[Math.min((career.step||1)-1,arr.length-1)]*12;
-    return Math.round(base*civilTotalCompFactor[career.rank]/10000)*10000;
-  }
-  if(career.type==="entrepreneur") return 30000000;
-  const track=careerTracks[career.type]||careerTracks.employee;
-  const base=track.pay?track.pay[career.index||0]||track.pay[0]:30000000;
-  return Math.round(base*(1+Math.min((career.step||1)-1,8)*.035)/10000)*10000;
+function getChickenBasePay() {
+  if (!game || game.jobKey !== "entrepreneur") return 45000000;
+  if (game.career.title === "대형 프랜차이즈 대표") return 600000000;
+  if (game.career.title === "동네 프랜차이즈 대표") return 250000000;
+  if (game.career.title === "1,2,3호점 주인") return 120000000;
+  return 45000000;
 }
 
-function currentAnnualPay(){
-  if(game.jobKey==="civil"){
-    const arr=civilBaseMonthly[game.career.rank]||civilBaseMonthly[9];
-    const base=arr[Math.min(Math.max((game.career.step||1)-1,0),arr.length-1)]*12;
-    const performanceFactor=game.career.performance==="excellent"?1.04:game.career.performance==="good"?1.02:game.career.performance==="poor"?.96:1;
-    return Math.round(base*civilTotalCompFactor[game.career.rank]*performanceFactor/10000)*10000;
-  }
-  if(game.jobKey==="entrepreneur")return game.annualIncome||30000000;
-  const track=careerTracks[game.jobKey]||careerTracks.employee;
-  const idx=game.career.index||0;
-  const base=track.pay?track.pay[idx]||track.pay[track.pay.length-1]:30000000;
-  const step=game.career.step||1;
-  return Math.round(base*(1+Math.min(step-1,8)*.035)/10000)*10000;
+function currentAnnualPay() {
+  if (!game.career || game.jobKey === "unemployed") return 0;
+  if (game.jobKey === "entrepreneur") return game.annualIncome || getChickenBasePay();
+  const track = careerTracks[game.jobKey];
+  if (!track || !track.pay) return 30000000;
+  const idx = Math.min(game.career.step - 1, track.pay.length - 1);
+  return track.pay[Math.max(0, idx)];
 }
 
-function newCareer(jobKey){
-  if(jobKey==="civil")return {type:"civil",rank:9,step:1,title:"9급 주무관",yearsInRank:0,performance:"normal",political:null};
-  if(jobKey==="entrepreneur")return {type:"entrepreneur",index:0,step:1,title:"초기 사업가",yearsInRank:0,businessLevel:1};
-  const track=careerTracks[jobKey]||careerTracks.employee;
-  const first=track.stages[0];
-  return {type:jobKey,index:0,step:1,title:first.title,yearsInRank:0,performance:"normal", companySize:jobKey==="developer"?"중소기업":undefined};
-}
-
-function getCareerStartingIncome(jobKey, career){
-  if(jobKey==="civil"){
-    const arr=civilBaseMonthly[career.rank]||civilBaseMonthly[9];
-    return Math.round(arr[0]*12*civilTotalCompFactor[career.rank]/10000)*10000;
-  }
-  const track=careerTracks[jobKey];
-  if(track&&track.pay)return track.pay[career.index||0]||track.pay[0];
-  return 30000000;
-}
-
-function newGame(name,jobKey){
-  const career=newCareer(jobKey);
-  const j=jobs[jobKey];
-  const initialIncome=jobKey==="entrepreneur"?30000000:currentAnnualPayForCareer(career);
-  return {
-    name,age:20,year:START_YEAR,seasonIndex:0,jobKey,job:j.name,career,annualIncome:initialIncome,
-    cash:10000000,assets:{house:0,car:5000000,stock:0,etc:0},debt:0,health:90,happiness:70,stress:25,
-    married:false,children:0,spouseName:null,housing:{name:"원룸 월세",city:"지방 중소도시",owned:false},car:{name:"중고 경차",value:5000000},
-    currentStockSector: null,
-    lastHouseUpgradeYear:0,
-    history:[],lastEvent:null,totalIncome:0,totalInvestmentProfit:0,totalBusinessProfit:0,yearCashFlow:0,careerHistory:[],
-    jobChangeHistory:[]
+function newCareer(jobKey) {
+  if (jobKey === "unemployed") return { type: "unemployed", title: "구직자", step: 1, rankIndex: 0, govStep: 1 };
+  const track = careerTracks[jobKey];
+  return { 
+    type: jobKey, 
+    step: 1, 
+    rankIndex: 0, 
+    govStep: 1, 
+    title: track ? track.stages[0] : "신입" 
   };
 }
 
-function totalAssets(){return game.cash+game.assets.house+game.assets.car+game.assets.stock+game.assets.etc;}
-function netWorth(){return totalAssets()-game.debt;}
-function livingCost(){let cost=4500000;if(game.married)cost+=1750000;cost+=game.children*1750000;if(game.housing.owned)cost+=1250000;if(game.assets.car>0)cost+=750000;return cost;}
-function businessIncome(){const level=game.career.businessLevel||1;const base=(25000000+Math.random()*65000000)*(1+level*.22);const skill=(game.health+game.happiness-game.stress+100)/300;return Math.max(0,base*(.65+skill)-5000000-Math.random()*10000000);}
-function updateMarket(){if(game.assets.stock<=0)return 0;let rate=-.05+Math.random()*.12;if(Math.random()<.08)rate-=.05;const change=game.assets.stock*rate;game.assets.stock+=change;game.totalInvestmentProfit+=change;return change;}
+function generateFullProfile(baseProfile) {
+  const educations = [
+    { title: "고졸", addAge: 0 },
+    { title: "전문대졸 (2년제)", addAge: 2 },
+    { title: "대졸 (4년제)", addAge: 4 }
+  ];
+  const edu = educations[Math.floor(Math.random() * educations.length)];
 
-function recalculateLifestyle(){
-  const nw=netWorth(),income=game.annualIncome;
-  
-  if(!game.housing.owned){
-    let house=housingLevels[0];
-    for(const h of housingLevels) if(income>=h.minIncome && nw>=h.minNet) house=h;
-    game.housing={name:house.name,city:house.city,owned:false};
-    game.assets.house=0;
+  let military = { title: "해당 없음", addAge: 0, penaltyHealth: 0, isDischarged: false };
+  if (baseProfile.gender === "남성") {
+    const miliTypes = [
+      { title: "육군 만기 전역", addAge: 2, penaltyHealth: 0, isDischarged: true },
+      { title: "해군 만기 전역", addAge: 2, penaltyHealth: 0, isDischarged: true },
+      { title: "공군 만기 전역", addAge: 2, penaltyHealth: 0, isDischarged: true },
+      { title: "병역 면제", addAge: 0, penaltyHealth: 10, isDischarged: false }
+    ];
+    military = miliTypes[Math.floor(Math.random() * miliTypes.length)];
+  }
+
+  const startAge = 20 + edu.addAge + military.addAge;
+  const initialHealth = 90 - military.penaltyHealth;
+
+  return {
+    ...baseProfile,
+    education: edu.title,
+    military: military.title,
+    isDischarged: military.isDischarged,
+    startAge,
+    initialHealth
+  };
+}
+
+function newGame(profile, jobKey) {
+  const career = newCareer(jobKey);
+  const j = jobs[jobKey];
+  const initialIncome = careerTracks[jobKey] ? careerTracks[jobKey].pay[0] : 30000000;
+
+  const startingAssetTiers = [10000000, 20000000, 30000000];
+  const chosenTier = startingAssetTiers[Math.floor(Math.random() * startingAssetTiers.length)];
+
+  let initHousing = { ...housingLevels[0] };
+  let initCar = { ...carLevels[0] };
+  let initHouseAsset = 5000000;
+  let initCarAsset = 0;
+  let initCash = 5000000;
+  let firstYearLivingCost = 4000000;
+
+  if (chosenTier === 10000000) {
+    initHousing = { ...housingLevels[0] }; // 고시원
+    initCar = { ...carLevels[0] };
+    initHouseAsset = 5000000;
+    initCarAsset = 0;
+    initCash = 5000000;
+    firstYearLivingCost = 4000000;
+  } else if (chosenTier === 20000000) {
+    initHousing = { ...housingLevels[1] }; // 원룸 월세
+    initCar = { ...carLevels[0] };
+    initHouseAsset = 10000000;
+    initCarAsset = 0;
+    initCash = 10000000;
+    firstYearLivingCost = 7000000;
   } else {
-    game.assets.house *= 1 + (-.005 + Math.random()*.025);
+    initHousing = { ...housingLevels[1] }; // 원룸 월세
+    initCar = { ...carLevels[1] }; // 중고 경차
+    initHouseAsset = 10000000;
+    initCarAsset = 5000000;
+    initCash = 15000000;
+    firstYearLivingCost = 10000000;
   }
 
-  let car=cars[0];
-  for(const c of cars) if(income>=c.minIncome && nw>=c.minNet) car=c;
-  if(car.value > game.assets.car) {
-    game.car={name:car.name,value:car.value};
-    game.assets.car=car.value;
+  return {
+    name: profile.name,
+    gender: profile.gender,
+    age: profile.startAge,
+    year: START_YEAR + (profile.startAge - 20),
+    seasonIndex: 0,
+    startYearRecorded: START_YEAR + (profile.startAge - 20),
+    isFirstYearWinter: true,
+    firstYearLivingCostFixed: firstYearLivingCost,
+    jobKey,
+    job: j.name,
+    career,
+    annualIncome: initialIncome,
+    cumulativeIncome: initialIncome,
+    education: profile.education,
+    military: profile.military,
+    isDischarged: profile.isDischarged,
+    declaredSolo: false,
+    chickenStoreCount: 1,
+    hasOpenedStore2: false,
+    hasOpenedStore3: false,
+    cash: initCash,
+    assets: { house: initHouseAsset, car: initCarAsset, stock: 0, etc: 0 },
+    debt: 0,
+    health: profile.initialHealth,
+    happiness: 70,
+    stress: 25,
+    reputation: 70,
+    married: false,
+    divorced: false,
+    marriageYear: 0,
+    lastTravelYear: 0,
+    children: 0,
+    housing: initHousing,
+    car: initCar,
+    currentStockSector: null,
+    lastYearLivingCost: 0,
+    history: [],
+    lastEvent: `인생의 출발 (초기 자산: ${won(chosenTier)})`
+  };
+}
+
+function totalAssets() { return game.cash + game.assets.house + game.assets.car + game.assets.stock + game.assets.etc; }
+function netWorth() { return totalAssets() - game.debt; }
+
+function checkChickenEnterpriseGrowth() {
+  if (game.jobKey !== "entrepreneur") return;
+  const nw = netWorth();
+  if (nw >= 3000000000 && game.career.title !== "대형 프랜차이즈 대표") {
+    game.career.title = "대형 프랜차이즈 대표";
+    game.annualIncome = Math.max(game.annualIncome, 600000000);
+    alert("축하합니다! 순자산 30억을 돌파하여 전국구 [대형 프랜차이즈 대표]로 도약했습니다! (연소득 6억원 이상 보장)");
+  } else if (nw >= 1000000000 && game.career.title !== "동네 프랜차이즈 대표" && game.career.title !== "대형 프랜차이즈 대표") {
+    game.career.title = "동네 프랜차이즈 대표";
+    game.annualIncome = Math.max(game.annualIncome, 250000000);
+    alert("축하합니다! 자본금 10억원을 확보하여 [동네 프랜차이즈 대표]로 발돋움했습니다! (연소득 2.5억원 이상 보장)");
   }
 }
 
-function careerSnapshot(){
-  return {job:game.job,career:currentCareerTitle(),annualIncome:Math.round(game.annualIncome),jobKey:game.jobKey,
-    rank:game.jobKey==="civil"?game.career.rank:null,step:game.career.step||null,yearsInRank:game.career.yearsInRank||0,
-    performance:game.career.performance||null,political:game.career.political?game.career.political.stage:null};
-}
-function recordCareer(reason){
-  const snap=careerSnapshot();
-  const last=game.careerHistory[game.careerHistory.length-1];
-  if(!last||last.age!==game.age||last.reason!==reason||last.annualIncome!==snap.annualIncome||last.career!==snap.career){
-    game.careerHistory.push({...snap,age:game.age,year:game.year,season:SEASONS[game.seasonIndex],reason});
+function recalculateHousingAndLifestyle() {
+  if (game.seasonIndex === 0 && game.assets.car > 0) {
+    const depRate = 0.05 + Math.random() * 0.05;
+    game.assets.car = Math.round(game.assets.car * (1 - depRate));
+    game.car.value = game.assets.car;
   }
+
+  if (game.housing.owned && game.assets.house > 0) {
+    game.assets.house = Math.round(game.assets.house * (1 + (-0.01 + Math.random() * 0.03)));
+  }
+
+  checkChickenEnterpriseGrowth();
 }
 
-function recordHistory(){
+function liquidateAssetsForCash() {
+  let log = "";
+  if (game.assets.stock > 0) {
+    const stockVal = Math.round(game.assets.stock * 0.9);
+    game.cash += stockVal;
+    game.assets.stock = 0;
+    game.currentStockSector = null;
+    log += `[주식 처분] 보유 주식을 10% 급매 할인하여 ${won(stockVal)} 충당. `;
+  }
+
+  if (game.cash < 0 && game.assets.house > 0) {
+    const houseVal = Math.round(game.assets.house * 0.9);
+    game.cash += houseVal;
+    game.assets.house = 5000000;
+    game.cash -= 5000000;
+    game.housing = { ...housingLevels[0], name: "고시원 (강등)" };
+    log += `[주택 처분] 주거 자산을 10% 감가 정리하여 ${won(houseVal)} 충당 후 고시원으로 강등 이주. `;
+  }
+  return log;
+}
+
+function recordHistory() {
   const h = {
     age: game.age,
     year: game.year,
@@ -366,329 +390,698 @@ function recordHistory(){
     job: game.job,
     career: currentCareerTitle(),
     income: Math.round(game.annualIncome),
-    city: game.housing.city,
+    livingCost: Math.round(game.lastYearLivingCost || 0),
     housing: game.housing.name,
     car: game.car.name,
-    family: game.married ? (game.children ? `배우자 · 자녀 ${game.children}명` : "배우자") : "미혼",
-    married: game.married,
-    children: game.children,
+    family: game.divorced ? "돌싱" : (game.married ? (game.children ? `배우자·자녀 ${game.children}명` : "기혼") : "미혼"),
     houseAsset: Math.round(game.assets.house),
     carAsset: Math.round(game.assets.car),
     stockAsset: Math.round(game.assets.stock),
     etcAsset: Math.round(game.assets.etc),
     cashAsset: Math.round(game.cash),
     totalAsset: Math.round(totalAssets()),
-    debtAsset: Math.round(game.debt),
     netWorth: Math.round(netWorth()),
-    event: game.lastEvent || "인생의 시작",
-    rank: game.jobKey==="civil" ? game.career.rank : null,
-    step: game.career.step || null
+    event: game.lastEvent || ""
   };
-  const i = game.history.findIndex(x => x.age === game.age && x.season === h.season);
-  if (i >= 0) game.history[i] = h;
-  else game.history.push(h);
+  game.history.push(h);
 }
 
-function evaluatePerformance(){
-  if(game.jobKey==="entrepreneur")return;
-  const score=Math.random()+game.happiness/200-game.stress/250+game.health/300;
-  game.career.performance=score>.95?"excellent":score>.70?"good":score<.35?"poor":"normal";
-}
-function civilPromotionChance(){
-  const r=game.career.rank,rule=civilPromotionRules[r];if(!rule||game.career.yearsInRank<rule.minimumYears)return 0;
-  let p=rule.baseChance;
-  if(game.career.performance==="excellent")p+=.18;else if(game.career.performance==="good")p+=.08;else if(game.career.performance==="poor")p-=.08;
-  p+=Math.min(.12,Math.max(0,game.career.yearsInRank-rule.minimumYears)*.03);
-  return Math.max(0,Math.min(.85,p));
-}
-function promoteCivil(){
-  const next=civilPromotionRules[game.career.rank]?.nextRank;if(!next)return false;
-  game.career.rank=next;game.career.step=1;game.career.yearsInRank=0;game.career.title=careerTracks.civil.stages.find(x=>x.rank===next).title;
-  game.career.performance="normal";game.annualIncome=currentAnnualPay();game.stress+=8;game.happiness+=4;recordCareer("승진");return true;
-}
-function promoteGeneric(){
-  const track=careerTracks[game.jobKey];const idx=game.career.index||0;if(idx>=track.stages.length-1)return false;
-  game.career.index=idx+1;game.career.step=1;game.career.yearsInRank=0;game.career.title=track.stages[idx+1].title;game.annualIncome=currentAnnualPay();game.stress+=7;game.happiness+=4;recordCareer("승진");return true;
-}
-function tryPromotion(){
-  if(game.jobKey==="civil"){
-    const p=civilPromotionChance();
-    if(p>0&&Math.random()<p)return {success:promoteCivil(),chance:p};
-    return {success:false,chance:p};
-  }
-  if(game.jobKey==="entrepreneur")return {success:false,chance:0};
-  const track=careerTracks[game.jobKey]||careerTracks.employee;
-  const idx=game.career.index||0,stage=track.stages[idx];
-  if(!stage||game.career.yearsInRank<stage.promotionYears||idx>=track.stages.length-1)return {success:false,chance:0};
-  let p=.30;
-  if(game.career.performance==="excellent")p+=.18;
-  else if(game.career.performance==="good")p+=.08;
-  else if(game.career.performance==="poor")p-=.08;
-  p=Math.max(.05,Math.min(.75,p));
-  if(Math.random()<p)return {success:promoteGeneric(),chance:p};
-  return {success:false,chance:p};
-}
-
-function careerLabelDetail(){
-  const perf={excellent:"탁월",good:"우수",poor:"미흡",normal:"보통"}[game.career.performance]||"보통";
-  if(game.jobKey==="civil")return `${game.career.rank}급 · ${game.career.step}호봉 · ${perf}`;
-  if(game.jobKey==="entrepreneur")return `사업 단계 ${game.career.businessLevel} · 연간 순이익 변동형`;
-  return `경력 ${game.career.step}년차 · ${perf}`;
-}
-
-function eventList(){
+// -------------------------------------------------------------
+// 이벤트 생성 엔진
+// -------------------------------------------------------------
+function eventList() {
   const currentSeason = SEASONS[game.seasonIndex];
-  const e=[
-    {
-      id:"news_war_event", type:"뉴스 속보", title:`🚨 [속보] ${currentSeason} 지정학적 분쟁 (전쟁) 발생`,
-      desc:"세계 각국에 긴장이 감돌며 전쟁이 발발했습니다! 군수/방산 주식은 급등하고, 원자재/자원 주식은 급락합니다.",
-      ok:()=>true,
-      choices:[
-        {
-          text:"뉴스 확인 및 포트폴리오 대응",
-          result:"",
-          apply:function(){
-            let stockMsg = "";
-            if(game.assets.stock > 0){
-              if(game.currentStockSector === "군사"){
-                const profit = game.assets.stock * 0.8;
-                game.assets.stock += profit;
-                stockMsg = ` 보유 중인 군사/방산 주식이 폭등하여 ${won(profit)}의 시세 차익을 거두었습니다!`;
-              } else if(game.currentStockSector === "자원"){
-                const loss = game.assets.stock * 0.5;
-                game.assets.stock -= loss;
-                stockMsg = ` 보유 중인 자원 관련 주식이 급락하여 ${won(loss)}의 손실을 입었습니다.`;
-              } else {
-                const loss = game.assets.stock * 0.15;
-                game.assets.stock -= loss;
-                stockMsg = ` 시장 불확실성으로 보유 주식 가치가 ${won(loss)} 감소했습니다.`;
-              }
-            } else {
-              stockMsg = " (보유 주식이 없어 직접적인 영향은 없습니다.)";
+  const e = [];
+
+  // [기혼 전용 이혼 이벤트]: 여행 10년 미이행 시 매년 50% 확률 발동
+  if (game.married && !game.divorced) {
+    const yearsWithoutTravel = game.year - (game.lastTravelYear || game.marriageYear || game.year);
+    const isBroke = game.annualIncome < 25000000 || netWorth() < 0;
+
+    if ((yearsWithoutTravel >= 10 && Math.random() < 0.50) || isBroke) {
+      e.push({
+        id: "divorce_crisis", type: "가정 불화", title: `💔 ${currentSeason} 성격 차이 및 이혼 소송 청구`,
+        desc: yearsWithoutTravel >= 10
+          ? `결혼 생활 중 여행을 다녀오지 않은 지 ${yearsWithoutTravel}년이 흘렀습니다. 쌓인 피로와 무관심에 지친 배우자가 이혼을 청구하여 전 재산의 50%를 분할하게 됩니다.`
+          : "심각한 경제난으로 가정에 불화가 닥쳤습니다. 배우자의 이혼 청구로 합의 이혼에 도달하며 재산의 50%를 분할하게 됩니다.",
+        ok: () => true,
+        choices: [
+          {
+            text: "이혼 합의 및 재산 50% 분할 확정",
+            result: "",
+            apply: function() {
+              game.married = false;
+              game.divorced = true;
+              game.happiness = clamp(game.happiness - 40);
+              game.stress = clamp(game.stress + 35);
+              game.reputation = clamp(game.reputation - 15);
+
+              const lostCash = Math.round(Math.max(0, game.cash) * 0.5);
+              const lostStock = Math.round(game.assets.stock * 0.5);
+              const lostEtc = Math.round(game.assets.etc * 0.5);
+
+              game.cash -= lostCash;
+              game.assets.stock -= lostStock;
+              game.assets.etc -= lostEtc;
+
+              this.result = `이혼 절차가 마무리되어 [돌싱] 상태가 되었습니다. 위자료 및 재산 분할로 현금 ${won(lostCash)}, 주식 ${won(lostStock)}이 지급되었습니다.`;
             }
-            game.stress += 8; game.happiness -= 5;
-            this.result = `전쟁 뉴스 속보가 타전되었습니다.${stockMsg}`;
           }
-        }
-      ]
-    },
-    {
-      id:"news_disease_event", type:"뉴스 속보", title:`🚨 [속보] ${currentSeason} 전염병 유행`,
-      desc:"신종 바이러스 감염병이 유행하여 격리 치료를 받게 됩니다.",
-      ok:()=>true,
-      choices:[
-        {
-          text:"상황 수용 및 격리 치료",
-          result:"",
-          apply:function(){
-            game.health = clamp(game.health - 20);
-            game.stress += 10;
-            let stockMsg = "";
-            if(game.assets.stock > 0 && game.currentStockSector === "바이오"){
-              const profit = game.assets.stock * 0.5;
-              game.assets.stock += profit;
-              stockMsg = ` 바이오/헬스케어 보유 주식은 상승하여 ${won(profit)} 수익을 냈습니다!`;
-            }
-            this.result = `전염병에 감염되어 건강이 악화되었습니다 (-20).${stockMsg}`;
-          }
-        }
-      ]
-    },
-    {
-      id:"stock_investment", type:"투자", title:`${currentSeason} 주식 거래`,
-      desc: game.assets.stock > 0 
-        ? `현재 [${game.currentStockSector || '일반'}] 주식을 ${won(game.assets.stock)} 보유 중입니다.`
-        : "새로운 종목 주식을 매수할 기회입니다. (한 번에 한 카테고리만 보유 가능)",
-      ok:()=>true,
-      choices:[
-        {
-          text:"[군사/방산 주식] 매수 (1,000만원)",
-          result:"",
-          apply:function(){
-            if(game.cash >= 10000000){
-              game.cash -= 10000000; game.assets.stock += 10000000; game.currentStockSector = "군사";
-              this.result = "군사/방산 주식 1,000만원을 매수했습니다.";
-            } else { this.result = "현금이 부족합니다."; }
-          }
-        },
-        {
-          text:"[자원/원자재 주식] 매수 (1,000만원)",
-          result:"",
-          apply:function(){
-            if(game.cash >= 10000000){
-              game.cash -= 10000000; game.assets.stock += 10000000; game.currentStockSector = "자원";
-              this.result = "자원/원자재 주식 1,000만원을 매수했습니다.";
-            } else { this.result = "현금이 부족합니다."; }
-          }
-        },
-        {
-          text:"[IT/테크 주식] 매수 (1,000만원)",
-          result:"",
-          apply:function(){
-            if(game.cash >= 10000000){
-              game.cash -= 10000000; game.assets.stock += 10000000; game.currentStockSector = "IT";
-              this.result = "IT/테크 주식 1,000만원을 매수했습니다.";
-            } else { this.result = "현금이 부족합니다."; }
-          }
-        },
-        {
-          text:"보유 주식 전량 매도",
-          result:"",
-          apply:function(){
-            if(game.assets.stock > 0){
-              const sold = game.assets.stock; game.cash += sold; game.assets.stock = 0; game.currentStockSector = null;
-              this.result = `보유 주식을 전량 매도하여 ${won(sold)} 현금을 확보했습니다.`;
-            } else { this.result = "보유 중인 주식이 없습니다."; }
-          }
-        },
-        {
-          text:"현재 포트폴리오 유지",
-          result:"주식 상태를 유지합니다.",
-          apply:()=>{ game.stress -= 1; }
-        }
-      ]
-    },
-    {
-      id:"job_bonus", type:"수익", title:`[겨울] 연말 성과급`,
-      desc:`한 해 동안의 (${game.job}) 성과에 따라 연말 성과급이 지급됩니다.`,
-      ok:() => game.seasonIndex === 3,
-      choices:[
-        {
-          text:"성과급 수령",
-          result:"",
-          apply:function(){
-            let bonus = Math.round((game.annualIncome * (0.05 + Math.random() * 0.15)) / 10000) * 10000;
-            game.cash += bonus; game.happiness += 8;
-            this.result = `연말 성과급 ${won(bonus)}을 수령했습니다!`;
-          }
-        }
-      ]
-    },
-    {
-      id:"travel_event",type:"지출",title:`${currentSeason} 휴가 여행`,
-      desc:"휴가를 맞아 여행을 다녀옵니다.",
-      ok:()=>true,
-      choices:[
-        {
-          text:"국내 여행 (100만원)",
-          result:"국내 여행을 다녀왔습니다.",
-          apply:()=>{ if(game.cash >= 1000000){ game.cash -= 1000000; game.happiness += 6; game.stress -= 8; } }
-        },
-        {
-          text:"해외 여행 (400만원)",
-          result:"해외 여행으로 추억을 쌓았습니다.",
-          apply:()=>{ if(game.cash >= 4000000){ game.cash -= 4000000; game.happiness += 15; game.stress -= 15; } }
-        },
-        {
-          text:"집에서 휴식 (0원)",
-          result:"집에서 쉬었습니다.",
-          apply:()=>{ game.stress -= 3; }
-        }
-      ]
+        ]
+      });
     }
-  ];
-  return e.filter(x=>x.ok());
-}
+  }
 
-function generateEvent(){const list=eventList();currentEvent=list[Math.floor(Math.random()*list.length)];game.lastEvent=`[${SEASONS[game.seasonIndex]}] ${currentEvent.title}`;eventResolved=false;renderEvent();}
-function renderEvent(){
-  $("eventType").textContent=`${SEASONS[game.seasonIndex]} · ${currentEvent.type}`;$("eventTitle").textContent=currentEvent.title;$("eventDescription").textContent=currentEvent.desc;$("choices").innerHTML="";
-  currentEvent.choices.forEach((c,i)=>{const b=document.createElement("button");b.className="choice";b.textContent=`${i+1}. ${c.text}`;b.onclick=()=>resolveEvent(i);$("choices").appendChild(b)});
-  $("resultBox").classList.add("hidden");$("eventNextBtn").disabled=true;
-}
-function resolveEvent(i){
-  if(eventResolved)return;const c=currentEvent.choices[i];
-  const before={cash:game.cash,annualIncome:game.annualIncome,health:game.health,happiness:game.happiness,stress:game.stress,stock:game.assets.stock,children:game.children,married:game.married};
-  c.apply();game.health=clamp(game.health);game.happiness=clamp(game.happiness);game.stress=clamp(game.stress);game.annualIncome=Math.max(0,Math.round(game.annualIncome/10000)*10000);recalculateLifestyle();eventResolved=true;
-  $("resultText").textContent=c.result || "처리가 완료되었습니다.";
-  const changes=[["현금",game.cash-before.cash],["연소득",game.annualIncome-before.annualIncome],["주식",game.assets.stock-before.stock],["건강",game.health-before.health],["행복",game.happiness-before.happiness],["스트레스",game.stress-before.stress]].filter(x=>x[1]!==0).map(x=>`<span class="change">${x[0]} ${typeof x[1]==="number"&&Math.abs(x[1])>1000?signedWon(x[1]):(x[1]>0?"+":"")+x[1]}</span>`).join("");
-  $("resultChanges").innerHTML=changes||'<span class="change">변화 없음</span>';$("resultBox").classList.remove("hidden");[...document.querySelectorAll(".choice")].forEach(b=>b.disabled=true);$("eventNextBtn").disabled=false;updateUI();
-}
+  // 1. [두 번째 해 봄부터만 발동] 연소득 통보 및 협상
+  const isSecondYearSpringOrLater = game.year > game.startYearRecorded;
+  if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
+    const isGov = jobs[game.jobKey] && jobs[game.jobKey].isGov;
 
-function advanceYear(){
-  if(!eventResolved)return;
-  
-  if(game.seasonIndex < 3){
-    game.seasonIndex++;
+    if (isGov) {
+      const track = careerTracks[game.jobKey];
+      const curRankIdx = game.career.rankIndex || 0;
+      const canPromote = curRankIdx < track.stages.length - 1;
+      const willPromote = canPromote && Math.random() < 0.22;
+
+      if (willPromote) {
+        const nextRankIdx = curRankIdx + 1;
+        const nextTitle = track.stages[nextRankIdx];
+        const extraPromoRate = 0.05 + Math.random() * 0.05;
+        const promoBonus = Math.round((game.annualIncome * extraPromoRate) / 10000) * 10000;
+        const finalPay = game.annualIncome + promoBonus;
+
+        return [{
+          id: "gov_promotion_event", type: "공직 승진", title: `🎖️ [경사] 공직 승진 및 특별 호봉 인상 통보`,
+          desc: `근무성적평가 최우수를 인정받아 [${nextTitle}]으로 특별 승진되었습니다! 기존 호봉 인상 외에 추가 승진 보너스(${won(promoBonus)})가 현금 자산에 가산됩니다.`,
+          ok: () => true,
+          choices: [
+            {
+              text: `승진 발령 수락 및 추가 보너스 수령 (${won(promoBonus)})`,
+              result: `[${nextTitle}]으로 영전하며 최종 연소득 ${won(finalPay)}이 확정되고 추가 보너스 ${won(promoBonus)}이 입금되었습니다! (평판 +5, 행복 +15)`,
+              apply: function() {
+                game.career.rankIndex = nextRankIdx;
+                game.career.title = nextTitle;
+                game.annualIncome = finalPay;
+                game.cumulativeIncome += promoBonus;
+                game.cash += promoBonus;
+                game.reputation = clamp(game.reputation + 5);
+                game.happiness = clamp(game.happiness + 15);
+              }
+            }
+          ]
+        }];
+      } else {
+        return [{
+          id: "gov_step_event", type: "호봉 승급", title: `🌸 봄 정기 호봉 승급 통보`,
+          desc: `공무원 호봉 규정에 따라 1호봉이 승급되었으며 약 5% 인상된 올해 연소득 ${won(game.annualIncome)}이 현금 자산에 입금 완료되었습니다.`,
+          ok: () => true,
+          choices: [
+            {
+              text: "호봉 승급 확인 완료",
+              result: `${game.career.govStep}호봉 승급이 완료되었습니다. 올해도 공직에 전념합니다.`,
+              apply: function() {}
+            }
+          ]
+        }];
+      }
+    } 
+    else if (game.jobKey !== "unemployed" && game.jobKey !== "entrepreneur") {
+      const canNeg = jobs[game.jobKey] && jobs[game.jobKey].canNegotiate;
+      const choices = [
+        {
+          text: `통보된 연소득 확정 수락 (${won(game.annualIncome)})`,
+          result: `올해 연소득 ${won(game.annualIncome)} 계약이 정상 완료되었습니다.`,
+          apply: function() {}
+        }
+      ];
+
+      if (canNeg) {
+        choices.push({
+          text: "연소득 협상 시도 (추가 5~10% 인상 도전)",
+          result: "",
+          apply: function() {
+            const success = Math.random() < 0.25;
+            if (success) {
+              const extraRate = 0.05 + Math.random() * 0.05;
+              const extraMoney = Math.round((game.annualIncome * extraRate) / 10000) * 10000;
+              const repPenalty = Math.floor(Math.random() * 4) + 1;
+              game.annualIncome += extraMoney;
+              game.cumulativeIncome += extraMoney;
+              game.cash += extraMoney;
+              game.reputation = clamp(game.reputation - repPenalty);
+              this.result = `🎉 연소득 협상 성공! 기본 입금 외에 추가 인상분 ${won(extraMoney)}이 현금 자산에 즉시 입금되었습니다. (평판 -${repPenalty})`;
+            } else {
+              const repPenalty = Math.floor(Math.random() * 11) + 10;
+              game.reputation = clamp(game.reputation - repPenalty);
+              game.stress += 12;
+              this.result = `❌ 연소득 협상 결렬! 추가 인상 없이 기본 연소득으로 유지되며 사내 평판이 대폭 깎였습니다. (평판 -${repPenalty}, 스트레스 +12)`;
+            }
+          }
+        });
+      }
+
+      return [{
+        id: "spring_salary_event", type: "연소득 통보", title: `🌸 봄 정기 연소득 통보 및 계약`,
+        desc: `올해 책정된 연소득 ${won(game.annualIncome)}이 현금 자산으로 전액 입금되었습니다.${canNeg ? ' 추가 인상을 위한 연소득 협상을 시도할 수 있습니다.' : ' (사규에 따라 확정 수락만 가능합니다.)'}`,
+        ok: () => true,
+        choices
+      }];
+    }
+  }
+
+  // 2. [치킨집사장 전용 이벤트: 2호점/3호점 단 1회 오픈 및 승급]
+  if (game.jobKey === "entrepreneur") {
+    if (game.chickenStoreCount === 1 && !game.hasOpenedStore2 && Math.random() < 0.35) {
+      return [{
+        id: "chicken_store2", type: "매장 확장", title: `🍗 [경사] 치킨집 2호점 직영 확장 오픈!`,
+        desc: "인근 번화가에 직영 2호점을 성공적으로 개점했습니다! 매출 규모가 2배로 커지며 연소득이 3,000만원 증가합니다.",
+        ok: () => true,
+        choices: [{
+          text: "2호점 개점식 진행 및 매출 증대",
+          result: "직영 2호점이 대박을 터뜨리며 연소득이 3,000만원 증가했습니다!",
+          apply: () => {
+            game.chickenStoreCount = 2;
+            game.hasOpenedStore2 = true;
+            game.annualIncome += 30000000;
+            game.happiness += 12;
+          }
+        }]
+      }];
+    }
+
+    if (game.chickenStoreCount === 2 && !game.hasOpenedStore3 && Math.random() < 0.35) {
+      return [{
+        id: "chicken_store3", type: "매장 확장", title: `🍗 [대박] 치킨집 3호점 오픈 및 '1,2,3호점 주인' 승급!`,
+        desc: "3개 매장을 거느린 지역구 요식업계 거물이 되었습니다! 직함이 [1,2,3호점 주인]으로 승급하며 연소득이 1억 2천만원 수준으로 대폭 점프합니다.",
+        ok: () => true,
+        choices: [{
+          text: "3호점 개점 및 공식 승급 수락",
+          result: "축하합니다! 3호점 오픈과 함께 [1,2,3호점 주인]으로 공식 승급했습니다! (연소득 1.2억원으로 상승)",
+          apply: () => {
+            game.chickenStoreCount = 3;
+            game.hasOpenedStore3 = true;
+            game.career.title = "1,2,3호점 주인";
+            game.annualIncome = Math.max(game.annualIncome + 50000000, 120000000);
+            game.happiness += 25;
+          }
+        }]
+      }];
+    }
+
+    const chickenDailyEvents = [
+      {
+        title: "🍗 공중파 유명 맛집 방송 전격 방영",
+        desc: "유명 예능 방송에 치킨 맛집으로 소개되며 매일 문전성시를 이룹니다!",
+        apply: () => {
+          const boost = Math.round((game.annualIncome * 0.40) / 10000) * 10000;
+          game.annualIncome += boost;
+          game.happiness += 15;
+          return `방송 출연 대박으로 연소득이 ${won(boost)} 급증했습니다! (연소득 40% 증가)`;
+        }
+      },
+      {
+        title: "🍗 SNS 숏폼 챌린지 및 입소문 열풍",
+        desc: "특제 양념 치킨이 젊은 층 사이에서 화제가 되며 배달 주문이 폭주합니다.",
+        apply: () => {
+          const boost = Math.round((game.annualIncome * 0.25) / 10000) * 10000;
+          game.annualIncome += boost;
+          game.happiness += 10;
+          return `입소문 열풍으로 연소득이 ${won(boost)} 증가했습니다! (연소득 25% 증가)`;
+        }
+      },
+      {
+        title: "🍗 무난한 분기 판매 실적",
+        desc: "단골 고객들의 꾸준한 방문으로 무난하게 매장을 운영했습니다.",
+        apply: () => "특별한 변동 없이 연소득이 안정적으로 동결 유지되었습니다."
+      },
+      {
+        title: "🍗 고물가 경기 불황 및 외식 소비 위축",
+        desc: "경기 침체로 야식 소비가 줄어들며 치킨 주문량이 크게 감소했습니다.",
+        apply: () => {
+          const drop = Math.round((game.annualIncome * 0.25) / 10000) * 10000;
+          game.annualIncome = Math.max(25000000, game.annualIncome - drop);
+          game.stress += 10;
+          return `경기 불황 여파로 연소득이 ${won(drop)} 감소했습니다. (1년 뒤 기본 연소득으로 복구됩니다)`;
+        }
+      },
+      {
+        title: "🍗 고병원성 조류독감(AI) 파동 발생",
+        desc: "조류독감 확산으로 닭고기 수급 불안 및 소비자들의 기피 심리가 닥쳤습니다.",
+        apply: () => {
+          const drop = Math.round((game.annualIncome * 0.40) / 10000) * 10000;
+          game.annualIncome = Math.max(20000000, game.annualIncome - drop);
+          game.stress += 15;
+          return `조류독감 사태로 치킨 소비가 얼어붙으며 연소득이 ${won(drop)} 급감했습니다! (1년 뒤 복구됩니다)`;
+        }
+      },
+      {
+        title: "🍗 프랜차이즈 본사 갑질 및 필수원자재 폭리",
+        desc: "본사의 일방적인 튀김유 및 전용 파우더 공급가 인상으로 영업이익이 급감했습니다.",
+        apply: () => {
+          const drop = Math.round((game.annualIncome * 0.20) / 10000) * 10000;
+          game.annualIncome = Math.max(25000000, game.annualIncome - drop);
+          game.stress += 12;
+          return `본사의 과도한 원가 인상으로 연소득이 ${won(drop)} 감소했습니다.`;
+        }
+      }
+    ];
+
+    const pick = chickenDailyEvents[Math.floor(Math.random() * chickenDailyEvents.length)];
+    e.push({
+      id: "chicken_biz_event", type: "치킨집 운영", title: `${currentSeason} 치킨 매장 실적 이슈`,
+      desc: pick.desc,
+      ok: () => true,
+      choices: [{
+        text: "매장 결산 확인",
+        result: "",
+        apply: function() { this.result = pick.apply(); }
+      }]
+    });
+  }
+
+  // 3. GICS 33개 테마별 주가 연동 이벤트
+  const gEvent = GICS_EVENTS[Math.floor(Math.random() * GICS_EVENTS.length)];
+  const upSector = GICS_SECTORS.find(s => s.id === gEvent.up);
+  const downSector = GICS_SECTORS.find(s => s.id === gEvent.down);
+
+  e.push({
+    id: "gics_market_news", type: "시장 뉴스", title: `📰 ${currentSeason} 글로벌 시장 리포트`,
+    desc: `${gEvent.title}\n\n${gEvent.desc}\n(수혜: ${upSector.name} ▲ / 악재: ${downSector.name} ▼)`,
+    ok: () => true,
+    choices: [
+      {
+        text: "뉴스 확인 및 포트폴리오 영향 반영",
+        result: "",
+        apply: function() {
+          let msg = "";
+          if (game.assets.stock > 0 && game.currentStockSector) {
+            if (game.currentStockSector === gEvent.up) {
+              const profit = Math.round(game.assets.stock * (0.35 + Math.random() * 0.25));
+              game.assets.stock += profit;
+              msg = ` 📈 보유 중인 [${upSector.name}] 섹터가 급등하여 ${won(profit)}의 시세 차익을 거두었습니다!`;
+            } else if (game.currentStockSector === gEvent.down) {
+              const loss = Math.round(game.assets.stock * (0.25 + Math.random() * 0.20));
+              game.assets.stock -= loss;
+              msg = ` 📉 보유 중인 [${downSector.name}] 섹터가 급락하여 ${won(loss)}의 손실을 입었습니다.`;
+            } else {
+              const normalRate = -0.05 + Math.random() * 0.10;
+              const diff = Math.round(game.assets.stock * normalRate);
+              game.assets.stock += diff;
+              msg = ` 보유 종목은 소폭 등락(${won(diff)})했습니다.`;
+            }
+          } else {
+            msg = " (보유 중인 주식이 없어 자산 영향은 없습니다.)";
+          }
+          this.result = `세계 금융시장 뉴스가 반영되었습니다.${msg}`;
+        }
+      }
+    ]
+  });
+
+  // ========================================================
+  // [개편] 팝업창 없이 5가지 선택지를 즉시 보여주는 주식 거래 이벤트
+  // ========================================================
+  const currentSecId = game.currentStockSector;
+  const currentSecObj = GICS_SECTORS.find(s => s.id === currentSecId);
+  const otherSectors = GICS_SECTORS.filter(s => s.id !== currentSecId);
+
+  // 무작위로 다른 섹터 3개 추첨
+  const shuffledOthers = [...otherSectors].sort(() => 0.5 - Math.random());
+  const pickThree = shuffledOthers.slice(0, 3);
+
+  const stockChoices = [];
+
+  // 선택지 1: 현재 보유 주식 종목 (보유 중이면 추가 매수, 없으면 추천 섹터 0번 매수)
+  if (currentSecObj && game.assets.stock > 0) {
+    stockChoices.push({
+      text: `${currentSecObj.name} 추가 매수 (1,000만)`,
+      result: "",
+      apply: function() {
+        if (game.cash >= 10000000) {
+          game.cash -= 10000000;
+          game.assets.stock += 10000000;
+          this.result = `현재 보유 중인 [${currentSecObj.name}] 주식 1,000만원을 추가 매수했습니다.`;
+        } else {
+          this.result = "현금이 부족하여 매수하지 못했습니다.";
+        }
+      }
+    });
   } else {
-    game.seasonIndex = 0;
-    if(game.age>=60){endGame();return;}
+    const firstPick = shuffledOthers[3] || GICS_SECTORS[0];
+    stockChoices.push({
+      text: `${firstPick.name} 매수 (1,000만)`,
+      result: "",
+      apply: function() {
+        if (game.cash >= 10000000) {
+          game.cash -= 10000000;
+          game.assets.stock += 10000000;
+          game.currentStockSector = firstPick.id;
+          this.result = `[${firstPick.name}] 주식 1,000만원을 신규 매수했습니다.`;
+        } else {
+          this.result = "현금이 부족하여 매수하지 못했습니다.";
+        }
+      }
+    });
+  }
+
+  // 선택지 2, 3, 4: 다른 종목 3개 (매수 또는 갈아타기)
+  pickThree.forEach(sec => {
+    stockChoices.push({
+      text: `${sec.name} ${game.assets.stock > 0 ? '갈아타기' : '매수'} (1,000만)`,
+      result: "",
+      apply: function() {
+        if (game.cash >= 10000000) {
+          game.cash -= 10000000;
+          game.assets.stock += 10000000;
+          game.currentStockSector = sec.id;
+          this.result = `[${sec.name}] 주식 1,000만원을 ${game.assets.stock > 10000000 ? '갈아타며 투자' : '매수'}했습니다.`;
+        } else {
+          this.result = "현금이 부족하여 거래를 진행하지 못했습니다.";
+        }
+      }
+    });
+  });
+
+  // 선택지 5: 전량 매도 (주식 보유 시) 또는 거래 안 함 (미보유 시)
+  if (game.assets.stock > 0) {
+    stockChoices.push({
+      text: "보유 주식 전량 매도 (현금화)",
+      result: "",
+      apply: function() {
+        const v = game.assets.stock;
+        game.cash += v;
+        game.assets.stock = 0;
+        game.currentStockSector = null;
+        this.result = `보유 주식을 전량 매도하여 현금 ${won(v)}을 확보했습니다.`;
+      }
+    });
+  } else {
+    stockChoices.push({
+      text: "거래 안 함 (관망)",
+      result: "이번 분기는 주식 거래 없이 관망하기로 결정했습니다.",
+      apply: () => {}
+    });
+  }
+
+  e.push({
+    id: "gics_stock_trading", type: "투자 기회", title: `📊 ${currentSeason} 주식 거래 시장 오픈`,
+    desc: game.assets.stock > 0
+      ? `현재 [${currentSecObj?.name || '일반'}] 주식을 ${won(game.assets.stock)} 보유 중입니다. 보유 종목을 늘리거나 다른 유망 섹터로 즉시 갈아탈 수 있습니다.`
+      : "증시에 새로운 투자 기회가 찾아왔습니다. 추천 섹터 중 하나를 선택해 매수할 수 있습니다.",
+    ok: () => true,
+    choices: stockChoices
+  });
+
+  // 5. 여행 이벤트
+  e.push({
+    id: "travel_event", type: "휴가", title: `✈️ ${currentSeason} 휴가 여행 계획`,
+    desc: "바쁜 일상에서 벗어나 여행을 떠납니다. 힐링이 되지만 피로로 건강과 평판이 소폭 깎입니다. (부부 관계 개선)",
+    ok: () => true,
+    choices: [
+      {
+        text: "국내 힐링 여행 (비용 100만)",
+        result: "국내 명소에서 푹 쉬다 왔습니다. (행복 +8, 스트레스 -10, 평판 -1, 건강 -2)",
+        apply: () => {
+          if (game.cash >= 1000000) {
+            game.cash -= 1000000;
+            game.happiness = clamp(game.happiness + 8);
+            game.stress = clamp(game.stress - 10);
+            game.reputation = clamp(game.reputation - 1);
+            game.health = clamp(game.health - 2);
+            if (game.married) game.lastTravelYear = game.year; // 10년 이혼 타이머 리셋
+          }
+        }
+      },
+      {
+        text: "해외 장기 여행 (비용 400만)",
+        result: "해외에서 뜻깊은 추억을 쌓았습니다. (행복 +18, 스트레스 -18, 평판 -3, 건강 -4)",
+        apply: () => {
+          if (game.cash >= 4000000) {
+            game.cash -= 4000000;
+            game.happiness = clamp(game.happiness + 18);
+            game.stress = clamp(game.stress - 18);
+            game.reputation = clamp(game.reputation - 3);
+            game.health = clamp(game.health - 4);
+            if (game.married) game.lastTravelYear = game.year; // 10년 이혼 타이머 리셋
+          }
+        }
+      },
+      {
+        text: "집에서 휴식 (비용 0원)",
+        result: "조용히 집에서 쉬며 체력을 비축했습니다.",
+        apply: () => { game.stress = clamp(game.stress - 3); }
+      }
+    ]
+  });
+
+  // 6. [겨울 전용] 성과급 이벤트
+  if (game.seasonIndex === 3 && game.jobKey !== "celebrity" && game.jobKey !== "entrepreneur" && game.jobKey !== "unemployed") {
+    e.push({
+      id: "job_bonus", type: "보너스", title: `❄️ 겨울 연말 특별 성과급`,
+      desc: `한 해 동안의 근속 및 업무 실적을 치하하는 특별 상여금이 지급됩니다.`,
+      ok: () => true,
+      choices: [
+        {
+          text: "성과급 수령",
+          result: "",
+          apply: function() {
+            const bonus = Math.round((game.annualIncome * (0.05 + Math.random() * 0.15)) / 10000) * 10000;
+            game.cash += bonus; game.happiness += 8; game.reputation = clamp(game.reputation + 2);
+            this.result = `연말 특별 성과급 ${won(bonus)}이 지급되었습니다!`;
+          }
+        }
+      ]
+    });
+  }
+
+  // 7. 결혼 이벤트
+  if (!game.married && !game.divorced && !game.declaredSolo && game.gender === "남성") {
+    if (game.age >= 45 && Math.random() < 0.60) {
+      e.push({
+        id: "marriage_intl", type: "인생", title: `💍 ${currentSeason} 국제결혼 주선`,
+        desc: "지인의 주선으로 국제결혼 만남이 성사되었습니다. 솔로 선언 시 향후 결혼 이벤트가 차단됩니다.",
+        ok: () => true,
+        choices: [
+          {
+            text: "국제결혼을 진행한다 (예식 및 체류비 1,500만)",
+            result: "배우자와 함께 새로운 가정을 꾸렸습니다.",
+            apply: () => {
+              if (game.cash >= 15000000) game.cash -= 15000000; else game.debt += 15000000;
+              game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 20;
+            }
+          },
+          {
+            text: "평생 솔로를 선언한다 (앞으로 결혼 사절)",
+            result: "자유로운 싱글라이프를 선언했습니다!",
+            apply: () => { game.declaredSolo = true; game.stress -= 10; }
+          }
+        ]
+      });
+    } else if (game.age >= 30 && game.age < 35 && Math.random() < 0.70) {
+      e.push({
+        id: "marriage_high", type: "인생", title: `💍 ${currentSeason} 결혼 결심`,
+        desc: "연인과 미래를 약속하고 결혼식을 올릴 기회입니다.",
+        ok: () => true,
+        choices: [
+          {
+            text: "결혼식을 올린다 (예식 비용 3,000만)",
+            result: "배우자와 부부의 연을 맺었습니다!",
+            apply: () => {
+              if (game.cash >= 30000000) game.cash -= 30000000; else game.debt += 30000000;
+              game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 25;
+            }
+          },
+          {
+            text: "아직은 미룬다",
+            result: "결혼을 미루고 일에 전념합니다.",
+            apply: () => {}
+          }
+        ]
+      });
+    }
+  }
+
+  return e.filter(x => x.ok());
+}
+
+function generateEvent() {
+  const list = eventList();
+  currentEvent = list[Math.floor(Math.random() * list.length)];
+  game.lastEvent = `[${SEASONS[game.seasonIndex]}] ${currentEvent.title}`;
+  eventResolved = false;
+  renderEvent();
+}
+
+function renderEvent() {
+  $("eventType").textContent = `${SEASONS[game.seasonIndex]} · ${currentEvent.type}`;
+  $("eventTitle").textContent = currentEvent.title;
+  $("eventDescription").textContent = currentEvent.desc;
+  $("choices").innerHTML = "";
+
+  currentEvent.choices.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.textContent = `${i + 1}. ${c.text}`;
+    b.onclick = () => resolveEvent(i);
+    $("choices").appendChild(b);
+  });
+
+  $("resultBox").classList.add("hidden");
+  $("eventNextBtn").disabled = true;
+}
+
+function resolveEvent(i) {
+  if (eventResolved) return;
+  const c = currentEvent.choices[i];
+  const before = { cash: game.cash, stock: game.assets.stock, rep: game.reputation };
+
+  c.apply();
+  game.health = clamp(game.health);
+  game.happiness = clamp(game.happiness);
+  game.stress = clamp(game.stress);
+  game.reputation = clamp(game.reputation);
+  recalculateHousingAndLifestyle();
+  eventResolved = true;
+
+  $("resultText").textContent = c.result || "처리가 완료되었습니다.";
+  const changes = [
+    ["현금", game.cash - before.cash],
+    ["주식", game.assets.stock - before.stock],
+    ["평판", game.reputation - before.rep]
+  ].filter(x => x[1] !== 0).map(x => `<span class="change">${x[0]} ${typeof x[1] === "number" && Math.abs(x[1]) > 1000 ? won(x[1]) : (x[1] > 0 ? "+" : "") + x[1]}</span>`).join("");
+
+  $("resultChanges").innerHTML = changes || '<span class="change">변동 없음</span>';
+  $("resultBox").classList.remove("hidden");
+  [...document.querySelectorAll(".choice")].forEach(b => b.disabled = true);
+  $("eventNextBtn").disabled = false;
+  updateUI();
+}
+
+function advanceYear() {
+  if (!eventResolved) return;
+
+  if (game.seasonIndex === 3) {
+    let annualLivingCost = 0;
+
+    if (game.isFirstYearWinter) {
+      annualLivingCost = game.firstYearLivingCostFixed || 4000000;
+      game.cash -= annualLivingCost;
+      game.isFirstYearWinter = false;
+
+      if (game.cash < 0) {
+        const liquidLog = liquidateAssetsForCash();
+        alert(`[첫해 겨울 생활비 지출]\n약정된 첫해 생활비 ${won(annualLivingCost)}이 차감되었습니다.\n현금이 부족하여 자산이 처분되었습니다.\n${liquidLog}`);
+      }
+    } else {
+      if (game.annualIncome > 0) {
+        const livingRate = 0.40 + Math.random() * 0.10;
+        annualLivingCost = Math.round((game.annualIncome * livingRate) / 10000) * 10000;
+        game.cash -= annualLivingCost;
+
+        if (game.cash < 0) {
+          const liquidLog = liquidateAssetsForCash();
+          alert(`[겨울 연간 생활비 지출]\n연소득의 ${Math.round(livingRate * 100)}%인 ${won(annualLivingCost)}이 생활비로 차감되었습니다.\n현금이 부족하여 자산이 처분되었습니다.\n${liquidLog}`);
+        }
+      }
+    }
+
+    game.lastYearLivingCost = annualLivingCost;
+
+    if (game.age >= 60) { endGame(); return; }
     game.age++;
     game.year++;
+    game.seasonIndex = 0;
 
-    if(game.jobKey==="entrepreneur"){
-      game.annualIncome=businessIncome();game.totalBusinessProfit+=Math.max(0,game.annualIncome);
-      if(Math.random()<.28&&game.career.businessLevel<5)game.career.businessLevel++;
-    }else{
-      game.career.step=(game.career.step||1)+1;game.career.yearsInRank=(game.career.yearsInRank||0)+1;evaluatePerformance();game.annualIncome=currentAnnualPay();
-      const p=tryPromotion();
-      if(p.success)game.lastEvent=`승진 · ${currentCareerTitle()}`;
+    // 봄 진입 시 연소득 계산 및 현금자산 선입금
+    if (game.jobKey !== "unemployed") {
+      const isGov = jobs[game.jobKey] && jobs[game.jobKey].isGov;
+
+      if (isGov) {
+        const hikeRate = 0.045 + Math.random() * 0.01;
+        game.annualIncome = Math.round((game.annualIncome * (1 + hikeRate)) / 10000) * 10000;
+        game.career.govStep = (game.career.govStep || 1) + 1;
+      } else if (game.jobKey === "entrepreneur") {
+        const basePay = getChickenBasePay();
+        if (game.annualIncome < basePay) {
+          game.annualIncome = basePay;
+        }
+      } else {
+        game.annualIncome = Math.round((game.annualIncome * (1.03 + Math.random() * 0.04)) / 10000) * 10000;
+      }
+
+      game.cash += game.annualIncome;
+      game.cumulativeIncome += game.annualIncome;
     }
-    game.totalIncome+=Math.max(0,game.annualIncome);
+  } else {
+    game.seasonIndex++;
   }
 
-  const investment=updateMarket();
-  game.cash += (game.annualIncome / 4) - livingCost();
-  game.cash=Math.max(game.cash,-500000000);
-  game.health=clamp(game.health+(game.stress>60?-2:0.5)+(Math.random()*2-1));
-  game.happiness=clamp(game.happiness+(Math.random()*4-2));
-  game.stress=clamp(game.stress+(Math.random()*6-3));
-  if(investment<0)game.stress+=1;
-  
-  recalculateLifestyle();
-  recordCareer("계절별 기록");
+  recalculateHousingAndLifestyle();
   recordHistory();
 
-  if(game.age>=60 && game.seasonIndex === 3){saveGame(false);endGame();return;}
+  if (game.age >= 60 && game.seasonIndex === 3) { endGame(); return; }
   generateEvent();
   updateUI();
-  saveGame(false);
 }
 
-function updateUI(){
-  $("ageText").textContent=game.age;
-  $("yearText").textContent=`${game.year} ${SEASONS[game.seasonIndex]}`;
-  $("jobText").textContent=game.job;
-  $("careerText").textContent=currentCareerTitle();
-  $("incomeText").textContent=won(game.annualIncome);
-  $("housingText").textContent=`${game.housing.name} (${game.housing.city})`;
-  $("netWorthText").textContent=`순자산 ${won(netWorth())}`;
-  $("carText").textContent=game.car.name;
-  $("familyText").textContent=game.married?(game.children?`배우자/자녀 ${game.children}`:"배우자"):"미혼";
-  $("marriageText").textContent=`자녀 ${game.children}명`;
-  $("healthText").textContent=game.health;
-  $("happinessText").textContent=game.happiness;
-  $("stressText").textContent=game.stress;
-  
-  // 주식 섹터 카테고리 표시 업데이트
-  const stockSectorInfo = game.assets.stock > 0 ? (game.currentStockSector ? `[${game.currentStockSector}]` : "[일반]") : "없음";
-  $("stockSectorText").textContent = `주식: ${stockSectorInfo}`;
-  
-  $("houseAsset").textContent=won(game.assets.house);
-  $("carAsset").textContent=won(game.assets.car);
-  $("stockAsset").textContent=`${won(game.assets.stock)} ${game.assets.stock > 0 ? stockSectorInfo : ''}`;
-  $("etcAsset").textContent=won(game.assets.etc);
-  $("cashAsset").textContent=won(game.cash);
-  $("totalAsset").textContent=won(totalAssets());
-  if($("totalAssetSub")) $("totalAssetSub").textContent=won(totalAssets());
-  
-  if($("eventNextBtn")){
-    $("eventNextBtn").textContent = game.seasonIndex < 3 ? "결과 확인 후 다음 계절로 →" : "결과 확인 후 다음 해로 →";
+function updateUI() {
+  $("ageText").textContent = game.age;
+  $("yearText").textContent = `${game.year} ${SEASONS[game.seasonIndex]}`;
+  $("jobText").textContent = `${game.job} (${game.education})`;
+  $("careerText").textContent = currentCareerTitle();
+  $("incomeText").textContent = won(game.annualIncome);
+  $("cumIncomeText").textContent = `생애소득 ${won(game.cumulativeIncome)}`;
+  $("housingText").textContent = `${game.housing.name} (${game.housing.city})`;
+  $("netWorthText").textContent = `순자산 ${won(netWorth())}`;
+  $("carText").textContent = `${game.car.name} (${won(game.assets.car)})`;
+  $("familyText").textContent = game.divorced ? "돌싱" : (game.married ? (game.children ? `배우자·자녀 ${game.children}명` : "기혼") : "미혼");
+
+  let marriageNote = `병역: ${game.military}`;
+  if (game.married && !game.divorced) {
+    const noTripYears = game.year - (game.lastTravelYear || game.marriageYear || game.year);
+    marriageNote = noTripYears >= 10 ? `⚠️ 미여행 ${noTripYears}년 (이혼위기 50%)` : `여행미이행: ${noTripYears}년차`;
+  }
+  $("marriageStateText").textContent = marriageNote;
+
+  $("healthText").textContent = game.health;
+  $("happinessText").textContent = game.happiness;
+  $("stressText").textContent = game.stress;
+  $("repText").textContent = game.reputation;
+
+  const currentSectorObj = GICS_SECTORS.find(s => s.id === game.currentStockSector);
+  const stockSectorInfo = game.assets.stock > 0 ? (currentSectorObj ? `[${currentSectorObj.name}]` : "[일반]") : "없음";
+  $("stockAsset").textContent = `${won(game.assets.stock)} ${game.assets.stock > 0 ? stockSectorInfo : ''}`;
+  $("houseAsset").textContent = won(game.assets.house);
+  $("carAsset").textContent = won(game.assets.car);
+  $("etcAsset").textContent = won(game.assets.etc);
+  $("cashAsset").textContent = won(game.cash);
+  $("totalAsset").textContent = won(totalAssets());
+  if ($("totalAssetSub")) $("totalAssetSub").textContent = won(totalAssets());
+
+  if ($("careerDetail")) {
+    const isGov = jobs[game.jobKey] && jobs[game.jobKey].isGov;
+    const canNeg = jobs[game.jobKey] && jobs[game.jobKey].canNegotiate;
+    $("careerDetail").innerHTML = `
+      <div><span>학력 / 병역</span><strong>${game.education} · ${game.military}</strong></div>
+      <div><span>현재 평판</span><strong>⭐ ${game.reputation}점 ${game.reputation < 50 ? '(주의)' : '(안전)'}</strong></div>
+      <div><span>현재 연소득</span><strong>${won(game.annualIncome)} ${isGov ? '(호봉제)' : (canNeg ? '(협상가능)' : '')}</strong></div>
+      <div><span>누적 생애소득</span><strong>${won(game.cumulativeIncome)}</strong></div>
+    `;
   }
 
-  if($("careerDetail")){
-    $("careerDetail").innerHTML=`<div><span>현재 경력</span><strong>${currentCareerTitle()}</strong></div><div><span>연간 총소득</span><strong>${won(game.annualIncome)}</strong></div><div><span>경력 연차</span><strong>${game.career.yearsInRank||0}년</strong></div>${game.jobKey==="civil"?`<div><span>승진 가능성</span><strong>${chance(civilPromotionChance())}</strong></div>`:""}`;
-  }
-  renderHistory();renderTimeline();drawChart("assetChart");
+  renderHistory();
+  renderTimeline();
+  drawChart("assetChart");
 }
 
-function renderHistory(){
-  $("historyCount").textContent=`${game.history.length}회 기록`;
+function renderHistory() {
+  $("historyCount").textContent = `${game.history.length}회 기록`;
   $("historyBody").innerHTML = game.history.map(h => `
     <tr>
-      <td><strong>${h.age}세</strong><br><small>${h.year} (${h.season||"봄"})</small></td>
+      <td><strong>${h.age}세</strong><br><small>${h.year} (${h.season})</small></td>
       <td>${h.job}<br><small style="color:#6b7280">${h.career}</small></td>
       <td>${won(h.income)}</td>
+      <td style="color:#dc2626">${h.livingCost > 0 ? `-${won(h.livingCost)}` : '-'}</td>
       <td>${won(h.houseAsset)}</td>
       <td>${won(h.carAsset)}</td>
       <td>${won(h.stockAsset)}</td>
@@ -700,199 +1093,391 @@ function renderHistory(){
   `).join("");
 }
 
-function renderTimeline(){
-  if(!game)return;
-  $("timeline").innerHTML=game.history.map(h=>`
+function renderTimeline() {
+  if (!game) return;
+  $("timeline").innerHTML = game.history.map(h => `
     <article class="timeline-item">
-      <div style="font-weight:bold">${h.age}세 (${h.year} ${h.season||"봄"}) - ${h.job} (${h.career})</div>
+      <div style="font-weight:bold">${h.age}세 (${h.year} ${h.season}) - ${h.job} (${h.career})</div>
       <div style="margin-top:4px;color:#6b7280">${h.event}</div>
-      <div style="margin-top:6px">소득: ${won(h.income)} | 총자산: ${won(h.totalAsset)} | 순자산: ${won(h.netWorth)}</div>
+      <div style="margin-top:6px">연소득: ${won(h.income)} ${h.livingCost > 0 ? `| 생활비: -${won(h.livingCost)}` : ''} | 총자산: ${won(h.totalAsset)} | 순자산: ${won(h.netWorth)}</div>
     </article>
   `).join("");
 }
 
-function drawChart(id){
-  const canvas=$(id);if(!canvas||!game||!game.history.length)return;
-  const r=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1,w=Math.max(300,r.width),h=Math.max(160,r.height);
-  canvas.width=w*dpr;canvas.height=h*dpr;const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);
-  const pad={l:50,r:15,t:15,b:25},data=game.history.map(x=>x.totalAsset),max=Math.max(...data,1),min=Math.min(...data,0),range=max-min||1;
-  ctx.clearRect(0,0,w,h);ctx.strokeStyle="#e5e7eb";ctx.fillStyle="#6b7280";ctx.font="10px Arial";
-  for(let i=0;i<=4;i++){const y=pad.t+(h-pad.t-pad.b)*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(won(max-range*i/4),5,y+3)}
-  const pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;ctx.strokeStyle="#2563eb";ctx.lineWidth=2;ctx.beginPath();
-  data.forEach((v,i)=>{const x=pad.l+(data.length===1?pw/2:pw*i/(data.length-1)),y=pad.t+(max-v)/range*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+function drawChart(id) {
+  const canvas = $(id);
+  if (!canvas || !game || !game.history.length) return;
+  const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1, w = Math.max(300, r.width), h = Math.max(160, r.height);
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+  const pad = { l: 50, r: 15, t: 15, b: 25 }, data = game.history.map(x => x.totalAsset), max = Math.max(...data, 1), min = Math.min(...data, 0), range = max - min || 1;
+  ctx.clearRect(0, 0, w, h); ctx.strokeStyle = "#e5e7eb"; ctx.fillStyle = "#6b7280"; ctx.font = "10px Arial";
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (h - pad.t - pad.b) * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+    ctx.fillText(won(max - range * i / 4), 5, y + 3);
+  }
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+  ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2; ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad.l + (data.length === 1 ? pw / 2 : pw * i / (data.length - 1)), y = pad.t + (max - v) / range * ph;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
   ctx.stroke();
 }
 
-function buyStock(){if(game.cash<1e7)return alert("현금 1,000만원이 필요합니다.");game.cash-=1e7;game.assets.stock+=1e7;if(!game.currentStockSector)game.currentStockSector="일반";updateUI();saveGame(false)}
-function sellStock(){if(game.assets.stock<=0)return alert("보유 주식이 없습니다.");const v=Math.min(1e7,game.assets.stock);game.assets.stock-=v;if(game.assets.stock===0)game.currentStockSector=null;game.cash+=v;updateUI();saveGame(false)}
-function buyHouse(){
-  if(game.housing.owned)return alert("이미 자가 주택이 있습니다.");
-  const price=450000000,loan=300000000,down=price-loan;
-  if(game.cash<down)return alert(`최소 ${won(down)} 현금이 필요합니다.`);
-  game.cash-=down;game.assets.house=price;game.debt+=loan;
-  game.housing={name:"84㎡ 아파트 자가",city:game.annualIncome>=180000000?"서울":"수도권",owned:true};
-  game.happiness=clamp(game.happiness+8);updateUI();saveGame(false);
+// GICS 모달 제어 (결정 패널 버튼용)
+function openStockModal() {
+  const modal = $("stockModal");
+  if (!modal) return;
+
+  const currentSectorObj = GICS_SECTORS.find(s => s.id === game.currentStockSector);
+  $("currentStockModalInfo").textContent = game.assets.stock > 0
+    ? `현재 보유: [${currentSectorObj?.name || '일반'}] ${won(game.assets.stock)} (1개 섹터만 보유 가능)`
+    : "현재 보유 주식 없음 (1,000만원 단위로 매수 가능)";
+
+  const listEl = $("gicsSectorList");
+  listEl.innerHTML = "";
+
+  GICS_SECTORS.forEach(sec => {
+    const item = document.createElement("div");
+    item.className = "sector-trade-item";
+
+    const isCurrent = game.currentStockSector === sec.id;
+    item.innerHTML = `
+      <div>
+        <strong>${sec.name} ${isCurrent ? '<span style="color:#2563eb">(보유중)</span>' : ''}</strong>
+        <small>${sec.desc}</small>
+      </div>
+      <button class="primary" data-id="${sec.id}">
+        ${isCurrent ? '추가 매수 (1,000만)' : (game.assets.stock > 0 ? '갈아타기 (1,000만)' : '매수 (1,000만)')}
+      </button>
+    `;
+
+    item.querySelector("button").onclick = () => {
+      buySpecificStockSector(sec.id);
+    };
+
+    listEl.appendChild(item);
+  });
+
+  modal.classList.remove("hidden");
 }
-function buyCar(){
-  const price=80000000;if(game.cash<price)return alert(`교체 비용 ${won(price)} 필요합니다.`);
-  game.cash-=price;game.assets.car=price;game.car={name:"GV70 / 팰리세이드급",value:price};
-  game.happiness=clamp(game.happiness+5);updateUI();saveGame(false);
+
+function closeStockModal() {
+  const modal = $("stockModal");
+  if (modal) modal.classList.add("hidden");
 }
-function careerChallenge(){
-  if(game.jobKey==="entrepreneur"){
-    const p=10000000+Math.random()*30000000;game.cash+=p;game.assets.etc+=p*.2;game.stress+=5;
-    alert(`사업 도전에 성공했습니다. 추가 수익 ${won(p)}`);
-  } else {
-    evaluatePerformance();const r=tryPromotion();
-    if(r.success)alert(`승진 성공! ${currentCareerTitle()}`);
-    else{game.stress+=5;alert(`승진 실패 (가능성: ${chance(r.chance)})`)}
+
+function buySpecificStockSector(sectorId) {
+  if (game.cash < 10000000) {
+    return alert("현금 1,000만원이 필요합니다.");
   }
-  updateUI();saveGame(false);
+  const sec = GICS_SECTORS.find(s => s.id === sectorId);
+
+  if (game.assets.stock > 0 && game.currentStockSector !== sectorId) {
+    const oldSecName = GICS_SECTORS.find(s => s.id === game.currentStockSector)?.name;
+    if (!confirm(`현재 보유 중인 [${oldSecName}] 주식에 더해 [${sec.name}]으로 단일 종목을 교체(갈아타기)하시겠습니까?`)) {
+      return;
+    }
+  }
+
+  game.cash -= 10000000;
+  game.assets.stock += 10000000;
+  game.currentStockSector = sectorId;
+  alert(`[${sec.name}] 섹터 주식 1,000만원을 매수했습니다.`);
+  updateUI();
+  openStockModal();
 }
 
-function saveGame(show=true){if(!game)return;localStorage.setItem(SAVE_KEY,JSON.stringify(game));if(show)alert("저장되었습니다.")}
-function loadGame(){
-  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return alert("저장된 데이터가 없습니다.");
-  try{game=JSON.parse(raw);migrateGame();show("gameScreen");updateUI();generateEvent();alert("게임 데이터를 불러왔습니다.")}
-  catch(e){console.error(e);alert("데이터 로드 실패.")}
-}
-function migrateGame(){
-  if(!game.profile)game.profile={name:game.name||"플레이어",region:"서울",gender:"선택안함",birth:`${FIXED_BIRTH_YEAR}-01-01`};
-  if(game.seasonIndex === undefined) game.seasonIndex = 0;
-  if(game.currentStockSector === undefined) game.currentStockSector = null;
-  if(!game.career||typeof game.career!=="object"){game.career=newCareer(game.jobKey);}
-  game.job=jobs[game.jobKey]?.name||game.job;
-  game.annualIncome=currentAnnualPay();
+function sellAllStock() {
+  if (game.assets.stock <= 0) return alert("보유 중인 주식이 없습니다.");
+  const v = game.assets.stock;
+  game.cash += v;
+  game.assets.stock = 0;
+  game.currentStockSector = null;
+  alert(`보유 주식을 전량 매도하여 현금 ${won(v)}을 확보했습니다.`);
+  updateUI();
+  closeStockModal();
 }
 
-function reset(){if(!confirm("새 게임을 시작할까요?"))return;localStorage.removeItem(SAVE_KEY);game=null;currentEvent=null;show("startScreen");}
-function endGame(){
-  show("endScreen");const nw=netWorth();
-  $("endingTitle").textContent="인생 결산 완료";$("endingMessage").textContent=`${game.name}님의 20세~60세 인생 기록입니다.`;
-  const stats=[["최종 직업",`${game.job} · ${currentCareerTitle()}`],["최종 연소득",won(game.annualIncome)],["총자산",won(totalAssets())],["순자산",won(nw)]];
-  $("endingStats").innerHTML=stats.map(x=>`<div class="ending-stat"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join("");
-  setTimeout(()=>drawChart("endingChart"),50);
+// 주택 UP / DOWN
+function houseUp() {
+  const curLevel = game.housing.level !== undefined ? game.housing.level : (game.housing.owned ? 5 : 1);
+  if (curLevel >= housingLevels.length - 1) return alert("이미 최고 등급 주택에 거주 중입니다.");
+
+  const next = housingLevels[curLevel + 1];
+
+  if (next.houseValue > 0) {
+    const loan = Math.round(next.houseValue * 0.6);
+    const down = next.houseValue - loan;
+    const refundDeposit = game.housing.deposit || 0;
+    const requiredCash = down - refundDeposit;
+
+    if (game.cash < requiredCash) {
+      return alert(`[${next.name}] 매매에는 보증금 환급 후 최소 현금 ${won(requiredCash)}이 필요합니다.`);
+    }
+
+    game.cash += refundDeposit;
+    game.cash -= down;
+    game.assets.house = next.houseValue;
+    game.debt += loan;
+    game.housing = { ...next, owned: true, deposit: 0 };
+    game.happiness = clamp(game.happiness + 15);
+    alert(`🎉 [${next.name}] 자가 주택으로 상향 이사했습니다! (대출 ${won(loan)})`);
+  } else {
+    const diff = next.deposit - (game.housing.deposit || 0);
+    if (game.cash < diff) {
+      return alert(`[${next.name}] 보증금 증액을 위해 현금 ${won(diff)}이 필요합니다.`);
+    }
+    game.cash -= diff;
+    game.assets.house = next.deposit;
+    game.housing = { ...next, owned: false };
+    game.happiness = clamp(game.happiness + 8);
+    alert(`[${next.name}]으로 상향 이사했습니다. (보증금 ${won(next.deposit)})`);
+  }
+  updateUI();
 }
 
-function show(id){["startScreen","rouletteScreen","gameScreen","recordScreen","endScreen"].forEach(x=>$(x).classList.toggle("hidden",x!==id))}
+function houseDown() {
+  const curLevel = game.housing.level !== undefined ? game.housing.level : (game.housing.owned ? 5 : 1);
+  if (curLevel <= 0) return alert("이미 가장 저렴한 고시원에 거주 중입니다.");
 
-function jobRouletteItems(selectedKey){
-  const keys=Object.keys(jobs);const items=[];
-  for(let i=0;i<5;i++)for(const k of keys)items.push(k);
-  const targetIndex=keys.length*2+Math.floor(keys.length/2);
-  items[targetIndex]=selectedKey;
-  return items;
+  const prev = housingLevels[curLevel - 1];
+
+  if (game.housing.owned) {
+    const sellPrice = Math.round(game.assets.house * 0.95);
+    const netCash = sellPrice - game.debt;
+    game.debt = 0;
+    game.cash += netCash;
+    game.cash -= prev.deposit;
+    game.assets.house = prev.deposit;
+    game.housing = { ...prev, owned: false };
+    game.happiness = clamp(game.happiness - 10);
+    alert(`자가 주택을 처분하고 [${prev.name}]으로 다운 이주하여 현금 ${won(netCash - prev.deposit)}을 확보했습니다.`);
+  } else {
+    const refund = (game.housing.deposit || 0) - prev.deposit;
+    game.cash += refund;
+    game.assets.house = prev.deposit;
+    game.housing = { ...prev, owned: false };
+    alert(`[${prev.name}]으로 하향 이사하여 보증금 차액 ${won(refund)}을 현금화했습니다.`);
+  }
+  updateUI();
 }
 
-function updateProfilePreview(){
+// 차량 UP / DOWN
+function carUp() {
+  const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
+  if (curLevel >= carLevels.length - 1) return alert("이미 최고급 플래그십 차량을 보유 중입니다.");
+
+  const next = carLevels[curLevel + 1];
+  const tradeInVal = Math.round(game.assets.car * 0.9);
+  const needCash = next.value - tradeInVal;
+
+  if (game.cash < needCash) {
+    return alert(`[${next.name}] 업그레이드에는 기존 차 처분 후 현금 ${won(needCash)}이 필요합니다.`);
+  }
+
+  game.cash -= needCash;
+  game.assets.car = next.value;
+  game.car = { ...next };
+  game.happiness = clamp(game.happiness + 8);
+  alert(`🚗 [${next.name}]으로 상향 구매 완료했습니다!`);
+  updateUI();
+}
+
+function carDown() {
+  const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
+  if (curLevel <= 0) return alert("현재 차량이 없어 더 낮출 수 없습니다.");
+
+  const prev = carLevels[curLevel - 1];
+  const sellVal = Math.round(game.assets.car * 0.9);
+  const getCash = sellVal - prev.value;
+
+  game.cash += getCash;
+  game.assets.car = prev.value;
+  game.car = { ...prev };
+  alert(`차량을 [${prev.name}]으로 변경하고 현금 ${won(getCash)}을 확보했습니다.`);
+  updateUI();
+}
+
+// 처음으로 홈 버튼 핸들러
+function handleHomeReset() {
+  if (confirm("다시 인생을 처음부터 시작하겠습니까?\n\n(확인: 첫 화면으로 이동, 취소: 현재 화면 유지)")) {
+    game = null;
+    currentEvent = null;
+    eventResolved = false;
+    show("startScreen");
+    initBirthUI();
+  }
+}
+
+function endGame() {
+  show("endScreen");
+  const nw = netWorth();
+  $("endingTitle").textContent = "인생 결산 완료";
+  $("endingMessage").textContent = `${game.name}님의 ${game.education} 출발, 60세까지의 인생 여정입니다.`;
+  const stats = [
+    ["최종 직업", `${game.job} (${currentCareerTitle()})`],
+    ["학력 / 병역", `${game.education} · ${game.military}`],
+    ["최종 연소득", won(game.annualIncome)],
+    ["누적 생애소득", won(game.cumulativeIncome)],
+    ["최종 순자산", won(nw)],
+    ["최종 평판", `${game.reputation}점`]
+  ];
+  $("endingStats").innerHTML = stats.map(x => `<div class="ending-stat"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join("");
+  setTimeout(()=>drawChart("endingChart"), 50);
+}
+
+function show(id) {
+  ["startScreen", "rouletteScreen", "gameScreen", "recordScreen", "endScreen"].forEach(x => $(x).classList.toggle("hidden", x !== id));
+}
+
+function updateProfilePreview() {
   const nameEl = $("playerName");
   const regionEl = $("playerRegion");
   const genderEl = $("playerGender");
-  if($("previewName") && nameEl) $("previewName").textContent = nameEl.value.trim() || "플레이어";
-  if($("previewRegion") && regionEl) $("previewRegion").textContent = regionEl.value;
-  if($("previewGender") && genderEl) $("previewGender").textContent = genderEl.value;
-  if($("previewBirth")) $("previewBirth").textContent = getSelectedBirthDate();
+  if ($("previewName") && nameEl) $("previewName").textContent = nameEl.value.trim() || "플레이어";
+  if ($("previewRegion") && regionEl) $("previewRegion").textContent = regionEl.value;
+  if ($("previewGender") && genderEl) $("previewGender").textContent = genderEl.value;
+  if ($("previewBirth")) $("previewBirth").textContent = getSelectedBirthDate();
 }
 
-function showRoulette(profile){
-  const generated=generateCareer(profile);
-  rouletteState={profile,generated,started:false};
-  $("rouletteProfile").textContent=`20세 · ${profile.region} 출신`;
-  $("rouletteCandidate").textContent="직업 생성 준비 완료";
+let rouletteState = { profile: null, generatedKey: null, started: false };
+
+function showRoulette(profile) {
+  rouletteState = { profile, generatedKey: null, started: false };
+
+  const eligibleJobKeys = Object.keys(jobs).filter(key => {
+    if (key === "unemployed") return false;
+
+    // 4년제 대졸 한정 직업[cite: 1]
+    const onlyUnivKeys = ["large_corp", "researcher", "professional", "doctor", "teacher", "finance"];
+    if (onlyUnivKeys.includes(key) && profile.education !== "대졸 (4년제)") return false;
+
+    // 고졸 한정 직업[cite: 1]
+    const onlyHighSchoolKeys = ["large_factory", "factory_worker"];
+    if (onlyHighSchoolKeys.includes(key) && profile.education !== "고졸") return false;
+
+    // 경찰, 소방관: 병역 면제자 지원 불가[cite: 1]
+    if ((key === "police" || key === "firefighter") && profile.military === "병역 면제") return false;
+
+    return true;
+  });
+
+  const selectedKey = eligibleJobKeys[Math.floor(Math.random() * eligibleJobKeys.length)];
+  rouletteState.generatedKey = selectedKey;
+
+  $("rouletteProfile").textContent = `[${profile.startAge}세 출발] ${profile.education} · ${profile.military} · ${profile.region} 출신`;
+  $("rouletteCandidate").textContent = "직업 추첨 준비 완료";
   $("rouletteResult").classList.add("hidden");
   $("rouletteConfirmBtn").classList.add("hidden");
   $("rouletteStartBtn").classList.remove("hidden");
-  
-  const keys=jobRouletteItems(generated.jobKey);
-  $("rouletteTrack").innerHTML=keys.map(k=>`<div class="roulette-item" data-job="${k}">${jobs[k].name}<small>${careerLabels[k]}</small></div>`).join("");
-  $("rouletteTrack").style.transition="none";
-  $("rouletteTrack").style.transform="translateX(0px)";
-  
+
+  const items = [];
+  for (let i = 0; i < 4; i++) for (const k of eligibleJobKeys) items.push(k);
+  const targetIndex = eligibleJobKeys.length * 2 + Math.floor(eligibleJobKeys.length / 2);
+  items[targetIndex] = selectedKey;
+
+  $("rouletteTrack").innerHTML = items.map(k => `<div class="roulette-item" data-job="${k}">${jobs[k].name}<small>${jobs[k].desc.slice(0, 14)}...</small></div>`).join("");
+  $("rouletteTrack").style.transition = "none";
+  $("rouletteTrack").style.transform = "translateX(0px)";
+
   show("rouletteScreen");
 }
 
-let rouletteState={profile:null,generated:null,started:false};
-
-async function spinCareerRoulette(){
-  if(!rouletteState.generated||rouletteState.started)return;
-  rouletteState.started=true;
+async function spinCareerRoulette() {
+  if (!rouletteState.profile || rouletteState.started) return;
+  rouletteState.started = true;
   $("rouletteStartBtn").classList.add("hidden");
-  
-  const track=$("rouletteTrack"), windowEl=$("rouletteWindow");
-  const items=[...track.querySelectorAll(".roulette-item")];
-  const targetKey = rouletteState.generated.jobKey;
+
+  const track = $("rouletteTrack"), windowEl = $("rouletteWindow");
+  const items = [...track.querySelectorAll(".roulette-item")];
+  const targetKey = rouletteState.generatedKey;
   let targetIndex = items.findIndex((el, idx) => idx >= items.length / 2 && el.getAttribute("data-job") === targetKey);
   if (targetIndex === -1) targetIndex = Math.floor(items.length / 2);
 
-  const itemWidth = items[0] ? items[0].getBoundingClientRect().width + 8 : 170;
+  const itemWidth = items[0] ? items[0].getBoundingClientRect().width + 8 : 168;
   const target = -(targetIndex * itemWidth - (windowEl.clientWidth / 2 - itemWidth / 2));
-  
-  track.style.transition = "transform 3.5s cubic-bezier(0.15, 0.85, 0.15, 1)";
-  track.style.transform = `translateX(${target}px)`;
-  
-  await new Promise(r => setTimeout(r, 3700));
 
-  const key=rouletteState.generated.jobKey;
-  const career=newCareer(key);
-  const income=getCareerStartingIncome(key,career);
-  $("rouletteCandidate").textContent=`🎯 ${jobs[key].name}`;
-  $("rouletteResultJob").textContent=jobs[key].name;
-  $("rouletteResultCareer").textContent=career.title;
-  $("rouletteResultIncome").textContent=`연 소득 ${won(income)}`;
-  $("rouletteResultReason").textContent=rouletteState.generated.reason;
+  track.style.transition = "transform 3.8s cubic-bezier(0.15, 0.85, 0.15, 1)";
+  track.style.transform = `translateX(${target}px)`;
+
+  await new Promise(r => setTimeout(r, 4000));
+
+  const key = rouletteState.generatedKey;
+  $("rouletteCandidate").textContent = `🎯 ${jobs[key].name}`;
+  $("rouletteResultJob").textContent = jobs[key].name;
+  $("rouletteResultCareer").textContent = `${rouletteState.profile.startAge}세 출발 직업`;
+  $("rouletteResultIncome").textContent = jobs[key].desc;
+  $("rouletteResultReason").textContent = `${rouletteState.profile.education} 및 ${rouletteState.profile.military} 이력 조건에 부합하여 직무가 배정되었습니다.`;
   $("rouletteResult").classList.remove("hidden");
   $("rouletteConfirmBtn").classList.remove("hidden");
 }
 
-function startGeneratedGame(){
-  if(!rouletteState.generated)return;
-  const p=rouletteState.profile, key=rouletteState.generated.jobKey;
-  game=newGame(p.name,key);
-  game.profile={...p};
-  game.careerOrigin={seed:rouletteState.generated.seed,reason:rouletteState.generated.reason};
-  game.annualIncome=currentAnnualPay();
-  recalculateLifestyle();recordCareer("첫 직업 생성");recordHistory();
-  show("gameScreen");updateUI();generateEvent();saveGame(false);
+function startGeneratedGame() {
+  if (!rouletteState.profile) return;
+  game = newGame(rouletteState.profile, rouletteState.generatedKey);
+  recalculateHousingAndLifestyle();
+  recordHistory();
+  show("gameScreen");
+  updateUI();
+  generateEvent(); // 첫해 봄에는 연봉 이벤트 없이 첫 일반 이벤트 생성
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function setupApplication() {
   initBirthUI();
 
-  ["playerName","playerRegion","playerGender"].forEach(id=>{
-    if($(id)){
-      $(id).addEventListener("input",updateProfilePreview);
-      $(id).addEventListener("change",updateProfilePreview);
+  ["playerName", "playerRegion", "playerGender"].forEach(id => {
+    const el = $(id);
+    if (el) {
+      el.addEventListener("input", updateProfilePreview);
+      el.addEventListener("change", updateProfilePreview);
     }
   });
 
-  if($("createCharacterBtn")){
-    $("createCharacterBtn").onclick=()=>{
-      const name=$("playerName").value.trim()||"플레이어";
-      const profile={
-        name,
-        region:$("playerRegion").value,
-        gender:$("playerGender").value,
-        birth:getSelectedBirthDate()
+  const createBtn = $("createCharacterBtn");
+  if (createBtn) {
+    createBtn.onclick = () => {
+      const base = {
+        name: $("playerName").value.trim() || "플레이어",
+        region: $("playerRegion").value,
+        gender: $("playerGender").value,
+        birth: getSelectedBirthDate()
       };
-      showRoulette(profile);
+      generatedProfileData = generateFullProfile(base);
+      showRoulette(generatedProfileData);
     };
   }
 
-  if($("rouletteStartBtn")) $("rouletteStartBtn").onclick=spinCareerRoulette;
-  if($("rouletteConfirmBtn")) $("rouletteConfirmBtn").onclick=startGeneratedGame;
-  if($("continueBtn")) $("continueBtn").onclick=loadGame;
-  if($("endingNewBtn")) $("endingNewBtn").onclick=reset;
-  if($("nextYearBtn")) $("nextYearBtn").onclick=()=>{if(eventResolved)advanceYear()};
-  if($("eventNextBtn")) $("eventNextBtn").onclick=advanceYear;
-  if($("lifeRecordBtn")) $("lifeRecordBtn").onclick=()=>show("recordScreen");
-  if($("closeRecordBtn")) $("closeRecordBtn").onclick=()=>show("gameScreen");
-  if($("stockBuyBtn")) $("stockBuyBtn").onclick=buyStock;
-  if($("stockSellBtn")) $("stockSellBtn").onclick=sellStock;
-  if($("houseBuyBtn")) $("houseBuyBtn").onclick=buyHouse;
-  if($("carBuyBtn")) $("carBuyBtn").onclick=buyCar;
-  if($("careerBtn")) $("careerBtn").onclick=careerChallenge;
+  if ($("rouletteStartBtn")) $("rouletteStartBtn").onclick = spinCareerRoulette;
+  if ($("rouletteConfirmBtn")) $("rouletteConfirmBtn").onclick = startGeneratedGame;
+  if ($("nextYearBtn")) $("nextYearBtn").onclick = () => { if (eventResolved) advanceYear(); };
+  if ($("eventNextBtn")) $("eventNextBtn").onclick = advanceYear;
+  if ($("lifeRecordBtn")) $("lifeRecordBtn").onclick = () => show("recordScreen");
+  if ($("closeRecordBtn")) $("closeRecordBtn").onclick = () => show("gameScreen");
 
-  if($("continueBtn")) $("continueBtn").classList.toggle("hidden",!localStorage.getItem(SAVE_KEY));
-});
+  // 홈(처음으로) 버튼 이벤트 연결
+  if ($("homeBtn")) $("homeBtn").onclick = handleHomeReset;
 
-window.onresize=()=>{if(game){drawChart("assetChart");drawChart("endingChart")}};
+  // GICS 섹터 모달 바인딩 (결정 패널 버튼)
+  if ($("openStockModalBtn")) $("openStockModalBtn").onclick = openStockModal;
+  if ($("closeStockModalBtn")) $("closeStockModalBtn").onclick = closeStockModal;
+  if ($("sellAllStockBtn")) $("sellAllStockBtn").onclick = sellAllStock;
+
+  // 주택 UP / DOWN 및 차량 UP / DOWN
+  if ($("houseUpBtn")) $("houseUpBtn").onclick = houseUp;
+  if ($("houseDownBtn")) $("houseDownBtn").onclick = houseDown;
+  if ($("carUpBtn")) $("carUpBtn").onclick = carUp;
+  if ($("carDownBtn")) $("carDownBtn").onclick = carDown;
+
+  if ($("endingNewBtn")) $("endingNewBtn").onclick = () => { game = null; show("startScreen"); };
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupApplication);
+} else {
+  setupApplication();
+}
+
+window.onresize = () => { if (game) drawChart("assetChart"); };
