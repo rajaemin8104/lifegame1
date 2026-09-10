@@ -21,17 +21,20 @@
   <section id="startScreen">
     <div class="start-card character-card">
       <span class="eyebrow">MY LIFE · CHARACTER CREATION</span>
-      <h2>당신의 인생을 생성합니다</h2>
-      <p>이름, 출생 지역, 성별, 생일을 바탕으로 학력과 군복무가 무작위 배정되며 출발 나이가 결정됩니다.</p>
+      <h2>당신의 기본 프로필을 설정합니다</h2>
+      <p>신상 정보를 입력하면 3열 슬롯머신 연출을 통해 [학력/병역], [거주 지역], [첫 직업]이 동시에 순차 결정됩니다.</p>
 
       <div class="profile-form">
-        <label class="input-label">
-          이름
-          <input id="playerName" maxlength="20" value="플레이어" placeholder="이름">
-        </label>
+        <div class="form-group">
+          <label class="input-label" for="playerName">이름</label>
+          <div class="name-input-group">
+            <input id="playerName" maxlength="20" placeholder="이름을 입력하세요" autocomplete="off">
+            <button type="button" id="randomNameBtn" class="btn-sm">🎲 랜덤</button>
+          </div>
+        </div>
 
-        <label class="input-label">
-          출생 지역
+        <div class="form-group">
+          <label class="input-label" for="playerRegion">출생 지역</label>
           <select id="playerRegion">
             <option value="서울">서울</option>
             <option value="경기도">경기도</option>
@@ -41,74 +44,94 @@
             <option value="경상도">경상도</option>
             <option value="제주도">제주도</option>
           </select>
-        </label>
+        </div>
 
-        <label class="input-label">
-          성별
+        <div class="form-group">
+          <label class="input-label" for="playerGender">성별</label>
           <select id="playerGender">
             <option value="남성">남성</option>
             <option value="여성">여성</option>
-            <option value="선택안함">선택안함</option>
           </select>
-        </label>
+        </div>
 
-        <label class="input-label">
-          생년월일
+        <div class="form-group">
+          <span class="input-label">생년월일</span>
           <div class="birth-select-group">
             <input id="playerBirthYear" type="text" value="2006년" readonly style="width: 32%; background:#f1f5f9; cursor:not-allowed; text-align:center; font-weight:bold; color:#334155;">
             <select id="playerBirthMonth" style="width: 32%;"></select>
             <select id="playerBirthDay" style="width: 32%;"></select>
           </div>
-        </label>
+        </div>
       </div>
 
       <div class="profile-preview" id="profilePreview">
-        <div><span>이름</span><strong id="previewName">플레이어</strong></div>
-        <div><span>지역</span><strong id="previewRegion">서울</strong></div>
+        <div><span>이름</span><strong id="previewName">-</strong></div>
+        <div><span>출생</span><strong id="previewRegion">서울</strong></div>
         <div><span>성별</span><strong id="previewGender">남성</strong></div>
         <div><span>생일</span><strong id="previewBirth">2006-01-01</strong></div>
       </div>
 
       <div class="creation-info">
-        <span>🎓 학력에 따라 시작 나이가 결정됩니다 (고졸 20세, 전문대졸 22세, 대졸 24세).</span>
-        <span>🎖️ 남성의 경우 전역 시 2세 가산, 면제 시 건강 페널티가 부여됩니다.</span>
-        <span>📈 GICS 11개 섹터별 독립적인 주식 매수/매도가 지원됩니다.</span>
-        <span>💔 결혼 후 10년 이상 여행을 가지 않으면 매년 50% 확률로 이혼 위기가 찾아옵니다.</span>
+        <span>🎓 고졸 20세, 전문대졸 22세, 대졸 24세, 대학원졸 26세로 출발 나이가 결정됩니다.</span>
+        <span>🏠 주거 형태(월세, 대출 이자 등)에 따라 연간 주거비용이 실제 생활비에 직접 합산됩니다.</span>
+        <span>🏢 84㎡ 전세는 2년마다 5%씩 보증금이 인상되며, 지역별 대출 비율과 매매가가 차등 적용됩니다.</span>
+        <span>🎰 3개의 슬롯 룰렛이 한 화면에서 동시에 회전하며 순차적으로 멈춥니다.</span>
       </div>
 
-      <button id="createCharacterBtn" class="primary full">🎲 프로필 생성 & 직업 룰렛</button>
+      <button id="createCharacterBtn" class="primary full">🎰 3열 슬롯 인생 룰렛 시작하기</button>
       <button id="continueBtn" class="secondary full hidden">저장된 인생 이어하기</button>
     </div>
   </section>
 
+  <!-- 한 화면 3열 룰렛 스크린 -->
   <section id="rouletteScreen" class="hidden">
-    <div class="roulette-card">
-      <span class="eyebrow">CAREER ROULETTE</span>
-      <h2 id="rouletteTitle">첫 직업을 추첨하는 중...</h2>
-      <p id="rouletteSubtitle">학력 및 배경 데이터를 바탕으로 출발점을 결정합니다.</p>
+    <div class="roulette-card triple-card">
+      <span class="eyebrow">DESTINY SLOTS · 3-REEL ROULETTE</span>
+      <h2 id="rouletteTitle">인생의 세 가지 조건이 회전합니다</h2>
+      <p id="rouletteSubtitle">1번 슬롯(학력/병역) ➔ 2번 슬롯(거주지) ➔ 3번 슬롯(첫 직업) 순으로 멈춥니다.</p>
 
-      <div class="roulette-stage">
-        <div class="roulette-pointer">▼</div>
-        <div id="rouletteWindow" class="roulette-window">
-          <div id="rouletteTrack" class="roulette-track"></div>
+      <div class="triple-roulette-container">
+        <!-- 1번 릴: 학력/병역 -->
+        <div class="reel-box">
+          <div class="reel-header">1. 학력 & 병역</div>
+          <div class="reel-pointer">▼</div>
+          <div class="reel-window">
+            <div id="reelTrack1" class="reel-track"></div>
+          </div>
+          <div id="reelStatus1" class="reel-status">대기 중</div>
+        </div>
+
+        <!-- 2번 릴: 거주 지역 -->
+        <div class="reel-box">
+          <div class="reel-header">2. 독립 거주지</div>
+          <div class="reel-pointer">▼</div>
+          <div class="reel-window">
+            <div id="reelTrack2" class="reel-track"></div>
+          </div>
+          <div id="reelStatus2" class="reel-status">대기 중</div>
+        </div>
+
+        <!-- 3번 릴: 첫 직업 -->
+        <div class="reel-box">
+          <div class="reel-header">3. 첫 출발 직업</div>
+          <div class="reel-pointer">▼</div>
+          <div class="reel-window">
+            <div id="reelTrack3" class="reel-track"></div>
+          </div>
+          <div id="reelStatus3" class="reel-status">대기 중</div>
         </div>
       </div>
 
-      <div class="roulette-profile">
-        <span id="rouletteProfile">출발 조건 분석 완료</span>
-        <strong id="rouletteCandidate">직업 생성 대기 중...</strong>
-      </div>
-
       <div id="rouletteResult" class="roulette-result hidden">
-        <span>YOUR FIRST CAREER</span>
+        <span id="rouletteResultBadge">인생 조건 확정 완료</span>
         <h1 id="rouletteResultJob">-</h1>
         <p id="rouletteResultCareer">-</p>
         <strong id="rouletteResultIncome">-</strong>
         <small id="rouletteResultReason">-</small>
       </div>
 
-      <button id="rouletteStartBtn" class="primary full">룰렛 돌리기</button>
-      <button id="rouletteConfirmBtn" class="secondary full hidden">이 직업으로 인생 시작</button>
+      <button id="rouletteStartBtn" class="primary full">🎰 슬롯 돌리기</button>
+      <button id="rouletteConfirmBtn" class="primary full hidden">이 조건으로 인생 시작!</button>
     </div>
   </section>
 
@@ -124,10 +147,9 @@
       </div>
     </div>
 
-    <!-- 컴팩트 요약 그리드 -->
     <div class="status-grid compact-grid">
       <div class="stat-card">
-        <span>💼 커리어 / 학력</span>
+        <span>💼 커리어 / 거주지</span>
         <strong id="jobText">-</strong>
         <small id="careerText">-</small>
       </div>
@@ -142,9 +164,9 @@
         <small id="carText">-</small>
       </div>
       <div class="stat-card">
-        <span>👨‍👩‍👧 가족 / 여행상태</span>
+        <span>👨‍👩‍👧 가족 상태</span>
         <strong id="familyText">미혼</strong>
-        <small id="marriageStateText">-</small>
+        <small id="marriageStateText">돌싱 여부/미혼</small>
       </div>
       <div class="stat-card">
         <span>📊 스탯 요약</span>
@@ -162,7 +184,6 @@
       </div>
     </div>
 
-    <!-- 이벤트 패널 -->
     <section class="panel event-panel">
       <div class="panel-heading">
         <div>
@@ -183,7 +204,6 @@
       <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음으로 →</button>
     </section>
 
-    <!-- 세부 자산 현황 -->
     <section class="panel assets-panel">
       <div class="panel-heading">
         <div><span class="eyebrow">ASSETS</span><h2>현재 자산 상세</h2></div>
@@ -193,7 +213,7 @@
         <div><span>🏠 주택 (보증금/자가)</span><strong id="houseAsset">0원</strong></div>
         <div><span>🚗 자동차</span><strong id="carAsset">0원</strong></div>
         <div><span>📈 보유 주식</span><strong id="stockAsset">0원</strong></div>
-        <div><span>💼 기타</span><strong id="etcAsset">0원</strong></div>
+        <div><span>💼 대출 부채</span><strong id="debtAsset" style="color:#dc2626">0원</strong></div>
         <div><span>💵 현금</span><strong id="cashAsset">0원</strong></div>
         <div class="highlight"><span>💰 총자산</span><strong id="totalAssetSub">0원</strong></div>
       </div>
@@ -204,11 +224,10 @@
       <div id="careerDetail" class="career-detail"></div>
     </section>
 
-    <!-- 결정 패널 -->
     <section class="panel actions-panel">
       <div class="panel-heading"><div><span class="eyebrow">DECISIONS</span><h2>자산 관리 & 결정</h2></div></div>
       <div class="action-buttons">
-        <button id="openStockModalBtn" class="primary">📊 GICS 11대 섹터 주식 거래</button>
+        <button id="openStockModalBtn" class="primary">📊 업종별 테마 주식 거래</button>
         <button id="houseUpBtn">🏠 주택 UP (상위 이사)</button>
         <button id="houseDownBtn">📉 주택 DOWN (현금 확보)</button>
         <button id="carUpBtn">🚗 차량 UP (상위 교체)</button>
@@ -233,7 +252,7 @@
               <th>주택 자산</th>
               <th>자동차 자산</th>
               <th>주식 자산</th>
-              <th>기타 자산</th>
+              <th>대출 잔액</th>
               <th>현금</th>
               <th>합계 자산</th>
               <th>순자산</th>
@@ -245,11 +264,10 @@
     </section>
   </section>
 
-  <!-- GICS 11대 섹터 개별 매수/매도 모달 -->
   <div id="stockModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>📊 GICS 11대 섹터 개별 주식 거래</h3>
+        <h3>📊 업종별 테마 주식 개별 거래</h3>
         <button id="closeStockModalBtn" class="btn-close">✕</button>
       </div>
       <p id="currentStockModalInfo" class="modal-desc">현재 보유: 없음</p>
@@ -262,8 +280,8 @@
 
   <section id="recordScreen" class="hidden">
     <div class="record-header">
-      <div><span class="eyebrow">MY LIFE STORY</span><h2>나의 인생 연표</h2></div>
-      <button id="closeRecordBtn">돌아가기</button>
+      <div><span class="eyebrow">MY LIFE STORY</span><h2>나의 전체 인생 연표</h2></div>
+      <button id="closeRecordBtn" class="btn-sm">돌아가기</button>
     </div>
     <div id="timeline" class="timeline"></div>
   </section>
@@ -272,13 +290,19 @@
     <div class="ending-card">
       <span class="eyebrow">AGE 60 · LIFE COMPLETE</span>
       <h1 id="endingTitle">당신의 인생 결산</h1>
-      <p id="endingMessage"></p>
-      <div id="endingStats" class="ending-stats"></div>
+      <p id="endingMessage" class="ending-intro"></p>
+      
+      <div id="endingStats" class="status-grid compact-grid ending-grid"></div>
       <div class="chart-wrap ending-chart"><canvas id="endingChart"></canvas></div>
-      <button id="endingNewBtn" class="primary full">새로운 인생 시작</button>
+
+      <div class="ending-actions">
+        <button id="endingViewRecordBtn" class="secondary full">📖 전체 인생 기록 연표 보기</button>
+        <button id="endingNewBtn" class="primary full">🔄 새로운 인생 시작하기</button>
+      </div>
     </div>
   </section>
 </div>
+<script src="news.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
