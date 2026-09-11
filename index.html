@@ -8,10 +8,10 @@
 </head>
 <body>
 <div class="app">
+  <!-- 1. 상단 헤더 영역 높이 최적화 (한 줄 구성) -->
   <header class="site-header">
     <div class="header-titles">
-      <h1>MY LIFE</h1>
-      <p>선택으로 만들어가는 나만의 현실 인생 시뮬레이션</p>
+      <h1>MY LIFE <span class="header-sub-desc">현실 인생 시뮬레이션</span></h1>
     </div>
     <div class="header-nav">
       <button id="homeBtn" class="btn-home">🏠 처음으로</button>
@@ -21,8 +21,8 @@
   <section id="startScreen">
     <div class="start-card character-card">
       <span class="eyebrow">MY LIFE · CHARACTER CREATION</span>
-      <h2>당신의 기본 프로필을 설정합니다</h2>
-      <p>신상 정보를 입력하면 3열 슬롯머신 연출을 통해 [학력/병역], [거주 지역], [첫 직업]이 동시에 순차 결정됩니다.</p>
+      <!-- 2. 프로필 안내 폰트 크기 축소 -->
+      <h3 class="profile-subtitle-small">당신의 기본 프로필을 설정하고 3단계 룰렛을 거쳐 인생을 시작합니다.</h3>
 
       <div class="profile-form">
         <div class="form-group">
@@ -71,27 +71,21 @@
         <div><span>생일</span><strong id="previewBirth">2006-01-01</strong></div>
       </div>
 
-      <div class="creation-info">
-        <span>🎓 고졸 20세, 전문대졸 22세, 대졸 24세, 대학원졸 26세로 출발 나이가 결정됩니다.</span>
-        <span>🏠 주거 형태(월세, 대출 이자 등)에 따라 연간 주거비용이 실제 생활비에 직접 합산됩니다.</span>
-        <span>🏢 84㎡ 전세는 2년마다 5%씩 보증금이 인상되며, 지역별 대출 비율과 매매가가 차등 적용됩니다.</span>
-        <span>🎰 3개의 슬롯 룰렛이 한 화면에서 동시에 회전하며 순차적으로 멈춥니다.</span>
-      </div>
+      <!-- 3. 하단 안내문구들 전부 삭제 완료 -->
 
       <button id="createCharacterBtn" class="primary full">🎰 3열 슬롯 인생 룰렛 시작하기</button>
       <button id="continueBtn" class="secondary full hidden">저장된 인생 이어하기</button>
     </div>
   </section>
 
-  <!-- 한 화면 3열 룰렛 스크린 -->
+  <!-- 3단계 순차 룰렛 스크린 (설명 문구 축소 및 삭제 반영) -->
   <section id="rouletteScreen" class="hidden">
     <div class="roulette-card triple-card">
-      <span class="eyebrow">DESTINY SLOTS · 3-REEL ROULETTE</span>
+      <span class="eyebrow" id="rouletteStepIndicator">DESTINY SLOTS · 3-REEL ROULETTE</span>
       <h2 id="rouletteTitle">인생의 세 가지 조건이 회전합니다</h2>
-      <p id="rouletteSubtitle">1번 슬롯(학력/병역) ➔ 2번 슬롯(거주지) ➔ 3번 슬롯(첫 직업) 순으로 멈춥니다.</p>
+      <!-- 안내 문구 삭제 반영 -->
 
       <div class="triple-roulette-container">
-        <!-- 1번 릴: 학력/병역 -->
         <div class="reel-box">
           <div class="reel-header">1. 학력 & 병역</div>
           <div class="reel-pointer">▼</div>
@@ -101,9 +95,8 @@
           <div id="reelStatus1" class="reel-status">대기 중</div>
         </div>
 
-        <!-- 2번 릴: 거주 지역 -->
         <div class="reel-box">
-          <div class="reel-header">2. 독립 거주지</div>
+          <div class="reel-header">2. 거주지</div>
           <div class="reel-pointer">▼</div>
           <div class="reel-window">
             <div id="reelTrack2" class="reel-track"></div>
@@ -111,9 +104,8 @@
           <div id="reelStatus2" class="reel-status">대기 중</div>
         </div>
 
-        <!-- 3번 릴: 첫 직업 -->
         <div class="reel-box">
-          <div class="reel-header">3. 첫 출발 직업</div>
+          <div class="reel-header">3. 직업</div>
           <div class="reel-pointer">▼</div>
           <div class="reel-window">
             <div id="reelTrack3" class="reel-track"></div>
@@ -122,7 +114,8 @@
         </div>
       </div>
 
-      <div id="rouletteResult" class="roulette-result hidden">
+      <!-- 룰렛 완료 텍스트 폰트 크기 축소 클래스 적용 -->
+      <div id="rouletteResult" class="roulette-result hidden compact-result">
         <span id="rouletteResultBadge">인생 조건 확정 완료</span>
         <h1 id="rouletteResultJob">-</h1>
         <p id="rouletteResultCareer">-</p>
@@ -264,6 +257,7 @@
     </section>
   </section>
 
+  <!-- 주식 거래 모달 (4. 줄바꿈 방지 및 한줄 정렬 클래스 적용) -->
   <div id="stockModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -274,6 +268,24 @@
       <div id="gicsSectorList" class="gics-sector-list"></div>
       <div class="modal-actions">
         <button id="sellAllStockBtn" class="danger">보유 주식 전량 매도 (현금화)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="houseModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>🏠 84㎡ 아파트 자가 매매 방식 선택</h3>
+        <button id="closeHouseModalBtn" class="btn-close">✕</button>
+      </div>
+      <p id="houseModalDesc" class="modal-desc">원하시는 자금 조달 방식을 선택해주세요.</p>
+      <div class="modal-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+        <button id="houseLoanBtn" class="primary" style="padding: 14px; font-weight: bold; text-align: left;">
+          🏦 대출 매매 (<span id="modalLoanText">지정 비율 대출, 연 4% 이자</span>)
+        </button>
+        <button id="houseFullBtn" class="secondary" style="padding: 14px; font-weight: bold; text-align: left; background: #f8fafc;">
+          💵 일시불 매매 (대출 없이 전액 현금 납부)
+        </button>
       </div>
     </div>
   </div>
@@ -305,4 +317,4 @@
 <script src="news.js"></script>
 <script src="game.js"></script>
 </body>
-</html> 
+</html>
