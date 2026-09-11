@@ -1,14 +1,20 @@
-/* =========================================================================
+/* ==========================================================================
    [MY LIFE] 현실 기반 인생 시뮬레이션 엔진 (game.js)
-   - 주요 업데이트:
-     1) 한 화면 3열 슬롯머신 룰렛 동시 회전 및 순차 멈춤 연출 (1번 -> 2번 -> 3번)
-     2) 정기 승진 심사 로직 보완 (근속 연차 및 평판 충족 시 봄 100% 발동)
-     3) 주거 형태별 연간 주거비(월세, 대출이자 등) 실제 생활비 지출에 정밀 합산
-     4) 84㎡ 전세 2년마다 5% 인상, 지역별 매매가·대출 비율 차등 및 일시불/대출 선택 매매 지원
-     5) 가족 정보창에서 '여행 미이행' 문구 제거
-   ========================================================================= */
+   - 최신 업데이트 내역:
+     1) 질병 이벤트 쿨타임 및 빈도 정밀 제어 
+        - 1,2단계: 5년 쿨타임 적용 (10년 무발생 시 최소 1회 강제 발생 보장)
+        - 3단계: 10년 쿨타임 적용 (생애 1~2회 수준)
+        - 4단계: 평생 단 1회 발생 제한 (이후 영구 차단)
+     2) 치킨집 2호점/3호점: 운영 5년 후 + 평판 90 이상 + 5,000만원 실제 지출 차감
+     3) 주식 이벤트: 말줄임표 없이 줄바꿈으로 전체 텍스트 출력, 발생 빈도 축소
+     4) 직장 뉴스: 출현 빈도 확대 (연 1회 확정 외에 추가 분기 등장 지원)
+     5) 84㎡ 주택 자가 매매: 클릭형 모달 선택창
+     6) 결혼 3회 미룰 시 이별 페널티 및 35~45세 구간 30% 확률 등장
+     7) 결혼 다음 해부터 기본 생활비 1.5배 가중 및 주거비용 자동 합산
+     8) 3열 슬롯머신 룰렛 연출 및 교체된 연소득 테이블 완벽 반영
+   ========================================================================== */
 
-const SAVE_KEY = "myLifePrototype_v43";
+const SAVE_KEY = "myLifePrototype_v47";
 const START_YEAR = 2026;
 const FIXED_BIRTH_YEAR = START_YEAR - 20;
 
@@ -45,7 +51,7 @@ const THEME_SECTORS = [
 
 const jobs = {
   large_corp: { id:"large_corp", name:"삼성전자 회사원", type:"private", desc:"탄탄한 복지와 높은 기본급, 파격적인 성과급이 주어집니다.", canNegotiate:false },
-  sme_corp: { id:"sme_corp", name:"블루어드 회사원", type:"private", desc:"SAP/MS 클라우드 솔루션을 전문으로 다루는 IT 기업입니다.", canNegotiate:true },
+  sme_corp: { id:"sme_corp", name:"블루어드 회사원", type:"private", desc:"SAP/MS 클라우드 엔터프라이즈 SW 전문 IT 기업입니다.", canNegotiate:true },
   developer: { id:"developer", name:"구글AI개발자", type:"private", desc:"최첨단 인공지능 기술을 연구하며 압도적인 성과급을 누립니다.", canNegotiate:true },
   civil: { id:"civil", name:"시청 공무원", type:"government", desc:"호봉표에 따라 정직하고 안정적인 보수가 지급됩니다.", canNegotiate:false, isGov:true },
   teacher: { id:"teacher", name:"중학교 교사", type:"public", desc:"호봉과 근속연수에 따른 복지와 정년이 보장됩니다.", canNegotiate:false, isGov:true },
@@ -73,34 +79,34 @@ const careerTracks = {
   large_corp: { stages: ["사원", "대리", "과장", "차장", "부장", "임원"], pay: [52000000, 65000000, 80000000, 95000000, 115000000, 160000000] },
   sme_corp: { stages: ["사원", "대리", "과장", "차장", "부장"], pay: [33000000, 40000000, 48000000, 56000000, 68000000] },
   developer: { stages: ["주니어", "미들", "시니어", "테크리드", "수석 아키텍트"], pay: [45000000, 60000000, 85000000, 110000000, 150000000] },
-  civil: { stages: ["9급 주무관", "8급 주무관", "7급 주무관", "6급 팀장", "5급 사무관"], pay: [32000000, 38000000, 46000000, 56000000, 70000000] },
-  teacher: { stages: ["신규교사", "1급정교사", "부장교사", "교감", "교장"], pay: [36000000, 47000000, 62000000, 75000000, 88000000] },
-  nurse: { stages: ["일반간호사", "책임간호사", "수간호사", "간호과장"], pay: [38000000, 48000000, 62000000, 78000000] },
-  doctor: { stages: ["인턴/레지던트", "전임의(펠로우)", "과장급 전문의", "원장"], pay: [65000000, 120000000, 190000000, 300000000] },
+  civil: { stages: ["9급 주무관", "8급 주무관", "7급 주무관", "6급 팀장", "5급 사무관"], pay: [32000000, 38000000, 45000000, 54000000, 68000000] },
+  teacher: { stages: ["신규교사", "1급정교사", "부장교사", "교감", "교장"], pay: [36000000, 45000000, 58000000, 70000000, 78000000] },
+  nurse: { stages: ["일반간호사", "책임간호사", "수간호사", "간호과장"], pay: [33000000, 42000000, 54000000, 60000000] },
+  doctor: { stages: ["인턴/레지던트", "전임의(펠로우)", "과장급 전문의", "원장"], pay: [80000000, 150000000, 300000000, 500000000] },
   police: { stages: ["순경", "경장", "경사", "경위", "경감", "경정"], pay: [35000000, 42000000, 50000000, 60000000, 72000000, 88000000] },
   firefighter: { stages: ["소방사", "소방교", "소방장", "소방위", "소방경"], pay: [35000000, 42000000, 50000000, 60000000, 72000000] },
-  finance: { stages: ["주임", "대리", "과장", "차장", "부장", "지점장/이사"], pay: [55000000, 72000000, 95000000, 120000000, 160000000, 220000000] },
+  finance: { stages: ["주임", "대리", "과장", "차장", "부장", "지점장/이사"], pay: [65000000, 90000000, 105000000, 130000000, 160000000, 220000000] },
   researcher: { stages: ["선임연구원", "책임연구원", "수석연구원", "연구위원"], pay: [58000000, 78000000, 105000000, 140000000] },
-  large_factory: { stages: ["사원", "조장", "반장", "직장", "기정"], pay: [48000000, 62000000, 76000000, 92000000, 110000000] },
-  professional: { stages: ["어쏘", "시니어", "주니어파트너", "대표 파트너"], pay: [70000000, 110000000, 170000000, 280000000] },
-  factory_worker: { stages: ["신입사원", "숙련공", "선임공", "생산반장"], pay: [32000000, 38000000, 45000000, 54000000] },
-  celebrity: { stages: ["신인/무명", "라이징 스타", "인지도 주연급", "탑스타"], pay: [20000000, 50000000, 150000000, 500000000] },
+  large_factory: { stages: ["사원", "조장", "반장", "직장", "기정"], pay: [58000000, 72000000, 84000000, 96000000, 110000000] },
+  professional: { stages: ["어쏘", "시니어", "주니어파트너", "대표 파트너"], pay: [80000000, 150000000, 220000000, 400000000] },
+  factory_worker: { stages: ["신입사원", "숙련공", "선임공", "생산반장"], pay: [30000000, 36000000, 42000000, 50000000] },
+  celebrity: { stages: ["신인/무명", "라이징 스타", "인지도 주연급", "탑스타"], pay: [20000000, 100000000, 500000000, 2000000000] },
   entrepreneur: { stages: ["1호점 초기창업", "1,2,3호점 주인", "동네 프랜차이즈 대표", "대형 프랜차이즈 대표"], pay: [45000000, 120000000, 250000000, 600000000] },
   unemployed: { stages: ["구직자"], pay: [0] }
 };
 
 const THEME_EVENTS = [
-  { up:"IT", down:"COMM", title:"글로벌 AI 데이터센터 대규모 증설", desc:"AI 칩 및 인프라 서버 수요 폭발", upRate:45, downRate:30 },
-  { up:"IT", down:"REST", title:"스마트 팩토리 및 초고속 클라우드 전환", desc:"기업 전산 인프라 투자 집중", upRate:40, downRate:25 },
-  { up:"CDIS", down:"CSTP", title:"소비자 심리지수 최고치 경신", desc:"명품, 신차, 레저 소비 폭증", upRate:50, downRate:35 },
-  { up:"CSTP", down:"CDIS", title:"글로벌 경기 둔화 및 실속형 소비 확산", desc:"외식 축소 및 필수 식료품 사재기", upRate:35, downRate:40 },
-  { up:"HLTH", down:"ENGY", title:"비만·항암 혁신 신약 글로벌 허가", desc:"바이오 신약 파이프라인 가치 폭등", upRate:55, downRate:30 },
-  { up:"FIN", down:"REST", title:"중앙은행 기준금리 추가 인상", desc:"예대마진 급증 및 자금 조달 경색", upRate:38, downRate:35 },
-  { up:"IND", down:"COMM", title:"국제 안보 위기 고조 및 국방비 증액", desc:"K-방산 및 특수 장비 대규모 수주", upRate:48, downRate:28 },
-  { up:"UTIL", down:"ENGY", title:"청정 공공전력 공급 체계 전격 개편", desc:"친환경 공공 전력망 가치 재평가", upRate:35, downRate:30 },
-  { up:"MATR", down:"CDIS", title:"2차전지 핵심 광물 수급난 심화", desc:"화학·합금·양극재 판가 폭등", upRate:42, downRate:28 },
-  { up:"ENGY", down:"IND", title:"산유국 협의체 감산 및 국제 유가 폭등", desc:"정유 시추 마진 극대화", upRate:50, downRate:35 },
-  { up:"REST", down:"FIN", title:"초저금리 기조 진입 및 리츠 랠리", desc:"낮은 조달 금리로 부동산 배당 매력 급등", upRate:40, downRate:25 }
+  { up:"IT", down:"COMM", title:"글로벌 AI 데이터센터 대규모 증설 발표", desc:"생성형 AI 모델 고도화로 인한 초고성능 AI 가속기 및 인프라 서버 수요가 전 세계적으로 폭증했습니다.", upRate:45, downRate:30 },
+  { up:"IT", down:"REST", title:"스마트 팩토리 및 초고속 클라우드 인프라 전환", desc:"제조 대기업들의 자동화 전산망 클라우드 전환 투자가 집중되며 전통 상업용 부동산 임대 수요가 둔화되었습니다.", upRate:40, downRate:25 },
+  { up:"CDIS", down:"CSTP", title:"소비자 심리지수 10년 만에 최고치 경신", desc:"경기 회복 기대감으로 명품, 신차, 레저 소비재 판매가 폭발하는 반면 경기방어 성격의 필수소비재는 매도세를 맞았습니다.", upRate:50, downRate:35 },
+  { up:"CSTP", down:"CDIS", title:"글로벌 경기 둔화 우려 및 실속형 소비 확산", desc:"외식을 대폭 줄이고 대형 마트 필수 식료품과 생활 생필품을 사재기하는 수요가 몰리고 있습니다.", upRate:35, downRate:40 },
+  { up:"HLTH", down:"ENGY", title:"비만·항암 혁신 신약 글로벌 임상 최종 승인", desc:"글로벌 블록버스터 신약 출시로 바이오 섹터가 급등하는 반면 화석연료 수요는 단기 조정을 겪고 있습니다.", upRate:55, downRate:30 },
+  { up:"FIN", down:"REST", title:"중앙은행 기준금리 전격 인상 단행", desc:"예대마진 확대로 시중은행 수익성이 급등하는 반면 고금리로 인한 부동산 PF 및 리츠 시장은 급랭했습니다.", upRate:38, downRate:35 },
+  { up:"IND", down:"COMM", title:"국제 안보 위기 고조 및 각국 국방비 증액", desc:"자주국방 테마 속에 K-방산 및 특수 정밀 장비 대규모 수출 잭팟이 터졌습니다.", upRate:48, downRate:28 },
+  { up:"UTIL", down:"ENGY", title:"원자력 및 청정 공공전력 공급 체계 개편", desc:"국가 전력망 안정화를 위한 공공 전력 인프라가 재평가받으며 전통 화석 정유주는 약세를 보입니다.", upRate:35, downRate:30 },
+  { up:"MATR", down:"CDIS", title:"2차전지 및 첨단 산업 핵심 광물 수급난 심화", desc:"희토류 및 양극재 소재 기업들의 판가가 폭등하며 원가 부담이 커진 완성차 제조사들은 실적이 위축되었습니다.", upRate:42, downRate:28 },
+  { up:"ENGY", down:"IND", title:"산유국 협의체 감산 발표 및 국제 유가 폭등", desc:"국제 유가가 치솟으며 정유·시추 기업들이 사상 최대 흑자를 낸 반면 연료비 폭탄을 맞은 항공/물류는 적자로 돌아섰습니다.", upRate:50, downRate:35 },
+  { up:"REST", down:"FIN", title:"초저금리 기조 진입 및 상업용 리츠 랠리", desc:"낮아진 자금 조달 비용으로 상업용 오피스 빌딩 리츠의 배당 매력이 크게 상승했습니다.", upRate:40, downRate:25 }
 ];
 
 const carLevels = [
@@ -116,10 +122,9 @@ const carLevels = [
 const SEASONS = ["봄", "여름", "가을", "겨울"];
 
 // -------------------------------------------------------------
-// 지역별 부동산 데이터 규격 정의 함수
+// 지역별 부동산 규격 정의
 // -------------------------------------------------------------
 function getRegionalHousingLevels(region) {
-  // 공통 기본 월세 단계
   const base = [
     { level: 0, type: "monthly", name: "고시원", deposit: 5000000, rent: 200000, houseValue: 0 },
     { level: 1, type: "monthly", name: "원룸 월세", deposit: 10000000, rent: 300000, houseValue: 0 },
@@ -152,7 +157,7 @@ function getRegionalHousingLevels(region) {
       { level: 7, type: "owned", name: "고급 아파트 자가", deposit: 0, rent: 0, houseValue: 1000000000, loanRate: 0 }
     ];
   } else {
-    // 강원도, 제주도 (고급 아파트 없음)
+    // 강원도, 제주도
     return [
       ...base,
       { level: 4, type: "jeonse", name: "84㎡ 아파트 전세", deposit: 150000000, rent: 0, houseValue: 0 },
@@ -277,9 +282,9 @@ function getChickenBasePay() {
 }
 
 function newCareer(jobKey) {
-  if (jobKey === "unemployed") return { type: "unemployed", title: "구직자", step: 1, rankIndex: 0, govStep: 1, yearsInCurrentRank: 0, promoTargetYears: 4 };
+  if (jobKey === "unemployed") return { type: "unemployed", title: "구직자", step: 1, rankIndex: 0, govStep: 1, yearsInCurrentRank: 0, promoTargetYears: 5 };
   const track = careerTracks[jobKey];
-  const randomPromoYears = Math.floor(Math.random() * 3) + 4; // 4~6년 사이 승진 대상 진입
+  const randomPromoYears = Math.floor(Math.random() * 5) + 4; // 4~8년
 
   return { 
     type: jobKey, 
@@ -323,21 +328,33 @@ function newGame(finalConfig) {
     firstYearLivingCost = 10000000;
   }
 
+  const startYear = START_YEAR + (finalConfig.startAge - 20);
+
   return {
     name: finalConfig.name,
     gender: finalConfig.gender,
     birthRegion: finalConfig.birthRegion,
     currentRegion: finalConfig.currentRegion,
     age: finalConfig.startAge,
-    year: START_YEAR + (finalConfig.startAge - 20),
+    year: startYear,
     seasonIndex: 0,
     newsSeasonInYear: Math.floor(Math.random() * 4),
     yearsWithoutTravelEvent: 0,
     hasTravelOccurredThisYear: false,
+    
+    // [신규 병합 반영] 질병 쿨타임 및 추적 변수
+    lastDiseaseAnyYear: startYear,
+    lastDiseaseL1L2Year: -999,
+    lastDiseaseL3Year: -999,
+    hasDiseaseL4Occurred: false,
+
     marriageDelayCount: 0,
     marriageBlockedUntilYear: 0,
     carCheckCount: 0,
-    housingYearsInCurrent: 0, // 전세 2년 카운터
+    housingYearsInCurrent: 0,
+    chickenStore1Years: 0,
+    chickenStore2Years: 0,
+    chickenStore3Years: 0, // [추가] 3호점 운영 연수 카운터
     startYearRecorded: START_YEAR + (finalConfig.startAge - 20),
     isFirstYearWinter: true,
     firstYearLivingCostFixed: firstYearLivingCost,
@@ -378,19 +395,29 @@ function newGame(finalConfig) {
 function totalAssets() { return game.cash + game.assets.house + game.assets.car + game.assets.stock + game.assets.etc; }
 function netWorth() { return totalAssets() - game.debt; }
 
+
 function checkChickenEnterpriseGrowth() {
   if (game.jobKey !== "entrepreneur") return;
   const nw = netWorth();
-  if (nw >= 3000000000 && game.career.title !== "대형 프랜차이즈 대표") {
-    game.career.title = "대형 프랜차이즈 대표";
-    game.annualIncome = Math.max(game.annualIncome, 600000000);
-    alert("축하합니다! 순자산 30억을 돌파하여 [대형 프랜차이즈 대표]로 도약했습니다! (연소득 6억원 이상 보장)");
-  } else if (nw >= 1000000000 && game.career.title !== "동네 프랜차이즈 대표" && game.career.title !== "대형 프랜차이즈 대표") {
-    game.career.title = "동네 프랜차이즈 대표";
-    game.annualIncome = Math.max(game.annualIncome, 250000000);
-    alert("축하합니다! 자본금 10억원을 확보하여 [동네 프랜차이즈 대표]로 발돋움했습니다! (연소득 2.5억원 이상 보장)");
+  
+  // [추가] 3호점을 오픈했고, 그 후로 5년 이상 운영했는지 확인
+  const hasOperatedStore3For5Years = game.hasOpenedStore3 && (game.chickenStore3Years >= 5);
+
+  // 3호점 운영 5년 충족 시에만 프랜차이즈 대표 승급 심사 진행
+  if (hasOperatedStore3For5Years) {
+    if (nw >= 3000000000 && game.career.title !== "대형 프랜차이즈 대표") {
+      game.career.title = "대형 프랜차이즈 대표";
+      game.annualIncome = Math.max(game.annualIncome, 600000000);
+      alert("축하합니다! 3호점 운영 5년 달성 및 순자산 30억을 돌파하여 전국구 [대형 프랜차이즈 대표]로 도약했습니다! (연소득 6억원 보장)");
+    } 
+    else if (nw >= 1000000000 && game.career.title !== "동네 프랜차이즈 대표" && game.career.title !== "대형 프랜차이즈 대표") {
+      game.career.title = "동네 프랜차이즈 대표";
+      game.annualIncome = Math.max(game.annualIncome, 250000000);
+      alert("축하합니다! 3호점 운영 5년 달성 및 자본금 10억원을 확보하여 [동네 프랜차이즈 대표]로 발돋움했습니다! (연소득 2.5억원 보장)");
+    }
   }
 }
+
 
 function recalculateHousingAndLifestyle() {
   if (game.seasonIndex === 0 && game.assets.car > 0) {
@@ -399,7 +426,6 @@ function recalculateHousingAndLifestyle() {
     game.car.value = game.assets.car;
   }
 
-  // 자가 주택 시세 완만한 우상향 반영
   if (game.housing.type === "owned" && game.assets.house > 0) {
     game.assets.house = Math.round(game.assets.house * (1 + (-0.01 + Math.random() * 0.03)));
   }
@@ -498,12 +524,129 @@ function createTravelEventObj(currentSeason) {
 }
 
 // -------------------------------------------------------------
-// 계절별 이벤트 엔진 (승진 심사 100% 보장 및 규칙 적용)
+// 건강 & 질병 4단계 동적 추첨 엔진 (1~4단계 정밀 쿨타임 제어)
+// -------------------------------------------------------------
+function checkHealthDiseaseEvent() {
+  const currentSeason = SEASONS[game.seasonIndex];
+  const yearsSinceAny = game.year - (game.lastDiseaseAnyYear || game.startYearRecorded);
+  const yearsSinceL1L2 = game.year - (game.lastDiseaseL1L2Year || -999);
+  const yearsSinceL3 = game.year - (game.lastDiseaseL3Year || -999);
+
+  let riskJobMultiplier = 1.0;
+  if (["large_factory", "factory_worker", "firefighter", "police"].includes(game.jobKey)) {
+    riskJobMultiplier = 1.35;
+  }
+
+  const isSoloMultiplier = (!game.married || game.divorced) ? 1.25 : 1.0;
+  
+  let healthMultiplier = 1.0;
+  if (game.health < 60) healthMultiplier = 1.6;
+  else if (game.health < 75) healthMultiplier = 1.25;
+
+  const totalM = riskJobMultiplier * isSoloMultiplier * healthMultiplier;
+
+  // 10년간 아무 질병도 없었다면 1단계 또는 2단계 무조건 강제 발생 (최소 1회 보장)
+  let forceL1L2 = (yearsSinceAny >= 10);
+  let eventLevel = 0;
+
+  if (forceL1L2) {
+    eventLevel = Math.random() < 0.3 ? 2 : 1; // 30% 확률로 2단계, 70% 확률로 1단계
+  } else {
+    // 4단계 (살면서 0~1번, 4단계 발생 이력 없어야 함)
+    if (!game.hasDiseaseL4Occurred && Math.random() < (0.0025 * totalM)) eventLevel = 4;
+    // 3단계 (생애 한 번 정도, 10년 쿨타임)
+    else if (yearsSinceL3 >= 10 && Math.random() < (0.0050 * totalM)) eventLevel = 3;
+    // 2단계 (10년에 최대 3회, 5년 쿨타임)
+    else if (yearsSinceL1L2 >= 5 && Math.random() < (0.0150 * totalM)) eventLevel = 2;
+    // 1단계 (10년에 최대 3회, 5년 쿨타임)
+    else if (yearsSinceL1L2 >= 5 && Math.random() < (0.0350 * totalM)) eventLevel = 1;
+  }
+
+  if (eventLevel === 4) {
+    const cost = 15000000;
+    return {
+      id: "health_tier4", type: "중증 질환", title: `🏥 ${currentSeason} 중증 질환 진단 및 긴급 대수술`,
+      desc: `정밀 검진 결과 조기 치료가 시급한 중증 질환이 발견되어 입원 후 긴급 수술을 받았습니다. 수술비와 특실 입원비 ${won(cost)}이 지출됩니다. (건강 -35, 스트레스 +35)`,
+      ok: () => true,
+      choices: [{
+        text: `수술비 지출 및 요양 치료 (${won(cost)})`,
+        result: `대수술을 무사히 마치고 장기간 회복 치료에 들어갔습니다. 의료비 ${won(cost)}이 정산되었습니다. (건강 -35, 스트레스 +35)`,
+        apply: () => {
+          game.cash -= cost;
+          game.health = clamp(game.health - 35);
+          game.stress = clamp(game.stress + 35);
+          game.happiness = clamp(game.happiness - 20);
+          game.hasDiseaseL4Occurred = true;
+          game.lastDiseaseAnyYear = game.year;
+        }
+      }]
+    };
+  } else if (eventLevel === 3) {
+    const cost = 2000000;
+    return {
+      id: "health_tier3", type: "교통사고", title: `🚑 ${currentSeason} 불의의 교통사고 발생 및 입원 치료`,
+      desc: `이동 중 발생한 차량 접촉 사고로 전치 4주의 부상을 입고 정형외과에 입원했습니다. 병원비 및 합의 처리비용 ${won(cost)}이 발생합니다. (건강 -18, 스트레스 +20)`,
+      ok: () => true,
+      choices: [{
+        text: `치료비 납부 및 입원 치료 (${won(cost)})`,
+        result: `입원 치료를 마쳤으나 당분간 재활이 필요합니다. 병원비 ${won(cost)}이 지출되었습니다. (건강 -18, 스트레스 +20)`,
+        apply: () => {
+          game.cash -= cost;
+          game.health = clamp(game.health - 18);
+          game.stress = clamp(game.stress + 20);
+          game.lastDiseaseL3Year = game.year;
+          game.lastDiseaseAnyYear = game.year;
+        }
+      }]
+    };
+  } else if (eventLevel === 2) {
+    const cost = 300000;
+    return {
+      id: "health_tier2", type: "부상 사고", title: `🩹 ${currentSeason} 일상생활 중 낙상 부상`,
+      desc: `계단에서 발을 헛디뎌 발목 인대가 늘어나는 부상을 당했습니다. 반깁스 처치와 물리치료비 ${won(cost)}이 소요됩니다. (건강 -8, 스트레스 +10)`,
+      ok: () => true,
+      choices: [{
+        text: `정형외과 치료 수용 (${won(cost)})`,
+        result: `반깁스를 하고 2주간 통원 치료를 받았습니다. (건강 -8, 스트레스 +10)`,
+        apply: () => {
+          game.cash -= cost;
+          game.health = clamp(game.health - 8);
+          game.stress = clamp(game.stress + 10);
+          game.lastDiseaseL1L2Year = game.year;
+          game.lastDiseaseAnyYear = game.year;
+        }
+      }]
+    };
+  } else if (eventLevel === 1) {
+    const cost = 50000;
+    return {
+      id: "health_tier1", type: "질병", title: `🤒 ${currentSeason} 환절기 급성 독감 및 감기몸살`,
+      desc: `면역력 저하와 과로로 인해 고열과 오한을 동반한 심한 감기몸살을 앓았습니다. 이비인후과 진료비와 영양 수액비 ${won(cost)}이 지출됩니다. (건강 -3)`,
+      ok: () => true,
+      choices: [{
+        text: `수액 처방 및 약 복용 (${won(cost)})`,
+        result: `주말 동안 푹 쉬며 수액을 맞고 기력을 회복했습니다. (건강 -3)`,
+        apply: () => {
+          game.cash -= cost;
+          game.health = clamp(game.health - 3);
+          game.stress = clamp(game.stress + 4);
+          game.lastDiseaseL1L2Year = game.year;
+          game.lastDiseaseAnyYear = game.year;
+        }
+      }]
+    };
+  }
+
+  return null;
+}
+
+// -------------------------------------------------------------
+// 메인 이벤트 엔진
 // -------------------------------------------------------------
 function eventList() {
   const currentSeason = SEASONS[game.seasonIndex];
 
-  // 1. [승진 심사] 매년 봄: 대상 직군이 연차 및 평판 요건 충족 시 100% 최우선 발동
+  // 1. [승진 심사]
   const isSecondYearSpringOrLater = game.year > game.startYearRecorded;
   if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     const isPromotable = PROMOTABLE_JOB_KEYS.includes(game.jobKey);
@@ -514,7 +657,6 @@ function eventList() {
       const yearsInRank = game.career.yearsInCurrentRank || 0;
       const targetYears = game.career.promoTargetYears || 4;
 
-      // 승진 요건: 연차 충족 + 평판 90점 이상
       if (canPromote && yearsInRank >= targetYears && game.reputation >= 90) {
         const nextRankIdx = curRankIdx + 1;
         const nextTitle = track.stages[nextRankIdx];
@@ -534,7 +676,7 @@ function eventList() {
                 game.career.rankIndex = nextRankIdx;
                 game.career.title = nextTitle;
                 game.career.yearsInCurrentRank = 0;
-                game.career.promoTargetYears = Math.floor(Math.random() * 3) + 4; // 다음 4~6년 후 재심사
+                game.career.promoTargetYears = Math.floor(Math.random() * 5) + 4;
                 game.annualIncome = finalPay;
                 game.cumulativeIncome += promoBonus;
                 game.cash += promoBonus;
@@ -548,7 +690,69 @@ function eventList() {
     }
   }
 
-  // 2. news.js 직업 뉴스 연 1회 100% 단독 발생
+  // 2. [치킨집 2호점/3호점 오픈]
+  if (game.jobKey === "entrepreneur") {
+    if (game.chickenStoreCount === 1 && !game.hasOpenedStore2 && game.chickenStore1Years >= 5) {
+      if (game.reputation >= 90 && game.cash >= 50000000) {
+        return [{
+          id: "chicken_store2", type: "매장 확장", title: `🍗 [경사] BBQ치킨집 2호점 직영 확장 오픈!`,
+          desc: `1호점을 5년간 성공적으로 운영하고 평판(${game.reputation}점)을 쌓아 2호점을 출점합니다! 가맹/인테리어 비용 5,000만원이 현금에서 지출되며, 연소득이 대폭 증가합니다.`,
+          ok: () => true,
+          choices: [
+            {
+              text: "현금 5,000만원 지출 및 2호점 개점식 진행",
+              result: "직영 2호점이 대박을 터뜨리며 연소득이 3,000만원 증가했습니다! (현금 -5,000만, 행복 +15)",
+                apply: () => {
+                game.cash -= 50000000;
+                game.chickenStoreCount = 2;
+                game.hasOpenedStore2 = true;
+                game.chickenStore2Years = 0;
+                game.annualIncome += 30000000;
+                // 직책 변경 코드 삭제 (1호점 초기창업 유지)
+                game.happiness += 15;
+              }
+            },
+            {
+              text: "자금 여유를 위해 개점을 보류한다",
+              result: "2호점 개점을 미루고 현재 매장 운영에 집중합니다.",
+              apply: () => {}
+            }
+          ]
+        }];
+      }
+    }
+
+    if (game.chickenStoreCount === 2 && !game.hasOpenedStore3 && game.chickenStore2Years >= 5) {
+      if (game.reputation >= 90 && game.cash >= 50000000) {
+        return [{
+          id: "chicken_store3", type: "매장 확장", title: `🍗 [대박] BBQ치킨집 3호점 오픈 및 '1,2,3호점 주인' 승급!`,
+          desc: `2호점 오픈 후 5년의 노력 끝에 대망의 3호점을 개설합니다! 투자비 5,000만원이 현금에서 지출되며, [1,2,3호점 주인]으로 승급합니다.`,
+          ok: () => true,
+          choices: [
+            {
+              text: "현금 5,000만원 지출 및 3호점 오픈",
+              result: "축하합니다! 3개 매장을 거느린 지역구 거물로 도약했습니다! (현금 -5,000만, 연소득 1.2억원으로 상승)",
+              apply: () => {
+                game.cash -= 50000000;
+                game.chickenStoreCount = 3;
+                game.hasOpenedStore3 = true;
+                game.career.title = "1,2,3호점 주인";
+                game.annualIncome = Math.max(game.annualIncome + 50000000, 120000000);
+                game.happiness += 25;
+              }
+            },
+            {
+              text: "안정적인 현금 보유를 위해 보류한다",
+              result: "3호점 개점을 미루기로 결정했습니다.",
+              apply: () => {}
+            }
+          ]
+        }];
+      }
+    }
+  }
+
+  // 3. [직장 뉴스 정기 발생] 지정 계절 100% 보장
   if (typeof getRandomJobNewsByProbability === "function" && game.jobKey) {
     if (game.seasonIndex === game.newsSeasonInYear) {
       const jobNews = getRandomJobNewsByProbability(game.jobKey);
@@ -559,29 +763,50 @@ function eventList() {
           title: `🏢 [${game.job}] ${jobNews.title}`,
           desc: jobNews.desc,
           ok: () => true,
-          choices: [
-            {
-              text: "현안 대응 및 결과 확인",
-              result: "",
-              apply: function() {
-                this.result = jobNews.apply(game, won);
-              }
-            }
-          ]
+          choices: [{
+            text: "현안 대응 및 결과 확인",
+            result: "",
+            apply: function() { this.result = jobNews.apply(game, won); }
+          }]
         }];
       }
     }
   }
 
-  // 3. 4년 연속 여행 미발생 시 5년째 여름 강제 출현
+  // 4. [여행 이벤트] 4년 연속 미발생 시 5년째 여름 강제 출현
   if (game.yearsWithoutTravelEvent >= 4 && game.seasonIndex === 1) {
     game.hasTravelOccurredThisYear = true;
     return [createTravelEventObj(currentSeason)];
   }
 
+  // 5. [질병 이벤트] 건강 추첨 최우선 발동
+  const diseaseEvent = checkHealthDiseaseEvent();
+  if (diseaseEvent) {
+    return [diseaseEvent];
+  }
+
   const e = [];
 
-  // [A] 자동차 노후화 및 강제 폐차
+  // [직장 뉴스 추가 발생 기회] 직장 뉴스의 출현 비중 확대 (35% 확률로 일반 풀 진입)
+  if (typeof getRandomJobNewsByProbability === "function" && game.jobKey && Math.random() < 0.35) {
+    const jobNews = getRandomJobNewsByProbability(game.jobKey);
+    if (jobNews) {
+      e.push({
+        id: "job_probability_news_extra",
+        type: `직장 소식 · ${jobNews.tier || "현안"}`,
+        title: `🏢 [${game.job}] ${jobNews.title}`,
+        desc: jobNews.desc,
+        ok: () => true,
+        choices: [{
+          text: "업무 확인 및 결과 수용",
+          result: "",
+          apply: function() { this.result = jobNews.apply(game, won); }
+        }]
+      });
+    }
+  }
+
+  // [A] 자동차 노후화 및 강제 폐차 시스템
   if (game.assets.car > 0) {
     const isOld15 = game.carHoldingYears >= 15;
     const isCheck3 = game.carCheckCount >= 2;
@@ -666,12 +891,12 @@ function eventList() {
     }
   }
 
-  // [C] 봄 정기 연소득 통보 (승진 요건 미달 시 일반 통보)
+  // [C] 봄 정기 연소득 통보
   if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     const canNeg = jobs[game.jobKey] && jobs[game.jobKey].canNegotiate;
-    const isPromotable = PROMOTABLE_JOB_KEYS.includes(game.jobKey);
     const yearsInRank = game.career ? (game.career.yearsInCurrentRank || 0) : 0;
     const targetYears = game.career ? (game.career.promoTargetYears || 4) : 4;
+    const isPromotable = PROMOTABLE_JOB_KEYS.includes(game.jobKey);
 
     const choices = [
       {
@@ -718,178 +943,145 @@ function eventList() {
     });
   }
 
-  // [D] BBQ치킨집 전용 이벤트
-  if (game.jobKey === "entrepreneur") {
-    if (game.chickenStoreCount === 1 && !game.hasOpenedStore2 && Math.random() < 0.35) {
-      return [{
-        id: "chicken_store2", type: "매장 확장", title: `🍗 [경사] BBQ치킨집 2호점 직영 확장 오픈!`,
-        desc: "인근 번화가에 직영 2호점을 성공적으로 개점했습니다! 매출 규모가 2배로 커지며 연소득이 3,000만원 증가합니다.",
-        ok: () => true,
-        choices: [{
-          text: "2호점 개점식 진행 및 매출 증대",
-          result: "직영 2호점이 대박을 터뜨리며 연소득이 3,000만원 증가했습니다!",
-          apply: () => {
-            game.chickenStoreCount = 2;
-            game.hasOpenedStore2 = true;
-            game.annualIncome += 30000000;
-            game.happiness += 12;
-          }
-        }]
-      }];
-    }
+  // [D] 통합 주식 투자 기회 이벤트 (발생 비율 15%로 축소)
+  if (Math.random() < 0.15) {
+    const tEvent = THEME_EVENTS[Math.floor(Math.random() * THEME_EVENTS.length)];
+    const upSector = THEME_SECTORS.find(s => s.id === tEvent.up);
+    const downSector = THEME_SECTORS.find(s => s.id === tEvent.down);
 
-    if (game.chickenStoreCount === 2 && !game.hasOpenedStore3 && Math.random() < 0.35) {
-      return [{
-        id: "chicken_store3", type: "매장 확장", title: `🍗 [대박] BBQ치킨집 3호점 오픈 및 '1,2,3호점 주인' 승급!`,
-        desc: "3개 매장을 거느린 요식업계 거물이 되었습니다! 직함이 [1,2,3호점 주인]으로 승급하며 연소득이 1억 2천만원 수준으로 대폭 점프합니다.",
-        ok: () => true,
-        choices: [{
-          text: "3호점 개점 및 공식 승급 수락",
-          result: "축하합니다! 3호점 오픈과 함께 [1,2,3호점 주인]으로 공식 승급했습니다! (연소득 1.2억원으로 상승)",
-          apply: () => {
-            game.chickenStoreCount = 3;
-            game.hasOpenedStore3 = true;
-            game.career.title = "1,2,3호점 주인";
-            game.annualIncome = Math.max(game.annualIncome + 50000000, 120000000);
-            game.happiness += 25;
-          }
-        }]
-      }];
-    }
-  }
-
-  // [E] 통합 투자 기회 이벤트
-  const tEvent = THEME_EVENTS[Math.floor(Math.random() * THEME_EVENTS.length)];
-  const upSector = THEME_SECTORS.find(s => s.id === tEvent.up);
-  const downSector = THEME_SECTORS.find(s => s.id === tEvent.down);
-
-  let stockFluctuationLog = "";
-  if (game.assets.stock > 0 && game.currentStockSector) {
-    if (game.currentStockSector === tEvent.up) {
-      const profit = Math.round(game.assets.stock * (tEvent.upRate / 100));
-      game.assets.stock += profit;
-      stockFluctuationLog = `\n\n📈 [수혜] 보유 중인 [${upSector.name}] 주식이 +${tEvent.upRate}% 급등하여 ${won(profit)}의 시세차익이 반영되었습니다!`;
-    } else if (game.currentStockSector === tEvent.down) {
-      const loss = Math.round(game.assets.stock * (tEvent.downRate / 100));
-      game.assets.stock -= loss;
-      stockFluctuationLog = `\n\n📉 [악재] 보유 중인 [${downSector.name}] 주식이 -${tEvent.downRate}% 급락하여 ${won(loss)}의 평가손실이 발생했습니다.`;
-    } else {
-      const normalRate = -0.05 + Math.random() * 0.10;
-      const diff = Math.round(game.assets.stock * normalRate);
-      game.assets.stock += diff;
-      stockFluctuationLog = `\n\n보유 종목 변동: ${won(diff)}`;
-    }
-  }
-
-  const currentSecId = game.currentStockSector;
-  const currentSecObj = THEME_SECTORS.find(s => s.id === currentSecId);
-  const otherSectors = THEME_SECTORS.filter(s => s.id !== currentSecId);
-  const shuffledOthers = [...otherSectors].sort(() => 0.5 - Math.random());
-  const pickThree = shuffledOthers.slice(0, 3);
-  const stockChoices = [];
-
-  function applyStockReputationPenalty() {
-    const penalty = Math.floor(Math.random() * 3) + 1;
-    game.reputation = clamp(game.reputation - penalty);
-  }
-
-  if (currentSecObj && game.assets.stock > 0) {
-    stockChoices.push({
-      text: `${currentSecObj.name} 추가 매수 (1,000만)`,
-      result: "",
-      apply: function() {
-        if (game.cash >= 10000000) {
-          game.cash -= 10000000;
-          game.assets.stock += 10000000;
-          applyStockReputationPenalty();
-          this.result = `보유 중인 [${currentSecObj.name}] 주식 1,000만원을 추가 매수했습니다.`;
-        } else {
-          this.result = "현금이 부족하여 매수하지 못했습니다.";
-        }
+    let stockFluctuationLog = "";
+    if (game.assets.stock > 0 && game.currentStockSector) {
+      if (game.currentStockSector === tEvent.up) {
+        const profit = Math.round(game.assets.stock * (tEvent.upRate / 100));
+        game.assets.stock += profit;
+        stockFluctuationLog = `<div style="color:#16a34a; margin-top:8px; font-weight:bold;">📈 [수혜 반영] 보유 중인 [${upSector.name}] 테마 주가가 +${tEvent.upRate}% 급등하여 ${won(profit)}의 평가 차익이 발생했습니다!</div>`;
+      } else if (game.currentStockSector === tEvent.down) {
+        const loss = Math.round(game.assets.stock * (tEvent.downRate / 100));
+        game.assets.stock -= loss;
+        stockFluctuationLog = `<div style="color:#dc2626; margin-top:8px; font-weight:bold;">📉 [악재 반영] 보유 중인 [${downSector.name}] 테마 주가가 -${tEvent.downRate}% 급락하여 ${won(loss)}의 손실을 입었습니다.</div>`;
+      } else {
+        const normalRate = -0.05 + Math.random() * 0.10;
+        const diff = Math.round(game.assets.stock * normalRate);
+        game.assets.stock += diff;
+        stockFluctuationLog = `<div style="color:#6b7280; margin-top:8px;">보유 종목 변동: ${won(diff)}</div>`;
       }
-    });
-  } else {
-    const firstPick = shuffledOthers[3] || THEME_SECTORS[0];
-    stockChoices.push({
-      text: `${firstPick.name} 신규 매수 (1,000만)`,
-      result: "",
-      apply: function() {
-        if (game.cash >= 10000000) {
-          game.cash -= 10000000;
-          game.assets.stock += 10000000;
-          game.currentStockSector = firstPick.id;
-          applyStockReputationPenalty();
-          this.result = `[${firstPick.name}] 주식 1,000만원을 신규 매수했습니다.`;
-        } else {
-          this.result = "현금이 부족하여 매수하지 못했습니다.";
-        }
-      }
-    });
-  }
+    }
 
-  pickThree.forEach(sec => {
-    stockChoices.push({
-      text: `${sec.name} ${game.assets.stock > 0 ? '갈아타기 (수수료 5%)' : '매수 (1,000만)'}`,
-      result: "",
-      apply: function() {
-        if (game.assets.stock > 0) {
-          const fee = Math.round(game.assets.stock * 0.05);
-          game.assets.stock -= fee;
-          game.currentStockSector = sec.id;
-          applyStockReputationPenalty();
-          this.result = `[${sec.name}]으로 갈아탔습니다. (교체 수수료 5%인 ${won(fee)} 차감)`;
-        } else {
+    const currentSecId = game.currentStockSector;
+    const currentSecObj = THEME_SECTORS.find(s => s.id === currentSecId);
+    const otherSectors = THEME_SECTORS.filter(s => s.id !== currentSecId);
+    const shuffledOthers = [...otherSectors].sort(() => 0.5 - Math.random());
+    const pickThree = shuffledOthers.slice(0, 3);
+    const stockChoices = [];
+
+    function applyStockReputationPenalty() {
+      const penalty = Math.floor(Math.random() * 3) + 1;
+      game.reputation = clamp(game.reputation - penalty);
+    }
+
+    if (currentSecObj && game.assets.stock > 0) {
+      stockChoices.push({
+        text: `${currentSecObj.name} 추가 매수 (1,000만)`,
+        result: "",
+        apply: function() {
           if (game.cash >= 10000000) {
             game.cash -= 10000000;
             game.assets.stock += 10000000;
-            game.currentStockSector = sec.id;
             applyStockReputationPenalty();
-            this.result = `[${sec.name}] 주식 1,000만원을 매수했습니다.`;
+            this.result = `보유 중인 [${currentSecObj.name}] 주식 1,000만원을 추가 매수했습니다.`;
           } else {
-            this.result = "현금이 부족하여 거래를 진행하지 못했습니다.";
+            this.result = "현금이 부족하여 매수하지 못했습니다.";
           }
         }
-      }
-    });
-  });
+      });
+    } else {
+      const firstPick = shuffledOthers[3] || THEME_SECTORS[0];
+      stockChoices.push({
+        text: `${firstPick.name} 신규 매수 (1,000만)`,
+        result: "",
+        apply: function() {
+          if (game.cash >= 10000000) {
+            game.cash -= 10000000;
+            game.assets.stock += 10000000;
+            game.currentStockSector = firstPick.id;
+            applyStockReputationPenalty();
+            this.result = `[${firstPick.name}] 주식 1,000만원을 신규 매수했습니다.`;
+          } else {
+            this.result = "현금이 부족하여 매수하지 못했습니다.";
+          }
+        }
+      });
+    }
 
-  if (game.assets.stock > 0) {
+    pickThree.forEach(sec => {
+      stockChoices.push({
+        text: `${sec.name} ${game.assets.stock > 0 ? '갈아타기 (수수료 5%)' : '매수 (1,000만)'}`,
+        result: "",
+        apply: function() {
+          if (game.assets.stock > 0) {
+            const fee = Math.round(game.assets.stock * 0.05);
+            game.assets.stock -= fee;
+            game.currentStockSector = sec.id;
+            applyStockReputationPenalty();
+            this.result = `[${sec.name}]으로 갈아탔습니다. (교체 수수료 5%인 ${won(fee)} 차감)`;
+          } else {
+            if (game.cash >= 10000000) {
+              game.cash -= 10000000;
+              game.assets.stock += 10000000;
+              game.currentStockSector = sec.id;
+              applyStockReputationPenalty();
+              this.result = `[${sec.name}] 주식 1,000만원을 매수했습니다.`;
+            } else {
+              this.result = "현금이 부족하여 거래를 진행하지 못했습니다.";
+            }
+          }
+        }
+      });
+    });
+
+    if (game.assets.stock > 0) {
+      stockChoices.push({
+        text: "보유 주식 전량 매도 (현금화)",
+        result: "",
+        apply: function() {
+          const v = game.assets.stock;
+          game.cash += v;
+          game.assets.stock = 0;
+          game.currentStockSector = null;
+          this.result = `보유 주식을 전량 매도하여 현금 ${won(v)}을 확보했습니다.`;
+        }
+      });
+    }
+
     stockChoices.push({
-      text: "보유 주식 전량 매도 (현금화)",
-      result: "",
-      apply: function() {
-        const v = game.assets.stock;
-        game.cash += v;
-        game.assets.stock = 0;
-        game.currentStockSector = null;
-        this.result = `보유 주식을 전량 매도하여 현금 ${won(v)}을 확보했습니다.`;
-      }
+      text: "거래 안 함 (관망하고 넘어가기)",
+      result: "이번 분기는 추가 거래 없이 시장 동향만 살피고 지나갑니다.",
+      apply: () => {}
+    });
+
+    // 줄바꿈으로 수혜와 악재를 온전히 표시
+    e.push({
+      id: "stock_integrated_event", type: "증시 시황", 
+      title: `📊 ${currentSeason} 증시 시황 및 투자 기회`,
+      desc: `<div style="font-weight:bold; font-size:13px; margin-bottom:6px; color:#1e293b;">[시장 주요 현안] ${tEvent.title}</div>` +
+            `<div style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:8px;">${tEvent.desc}</div>` +
+            `<div style="font-size:12px; line-height:1.6;">` +
+            `• 📈 <b>급등 수혜</b>: ${upSector.name} (+${tEvent.upRate}% 상승)<br>` +
+            `• 📉 <b>급락 악재</b>: ${downSector.name} (-${tEvent.downRate}% 하락)` +
+            `</div>` +
+            stockFluctuationLog,
+      ok: () => true,
+      choices: stockChoices
     });
   }
 
-  stockChoices.push({
-    text: "거래 안 함 (관망하고 넘어가기)",
-    result: "이번 분기는 추가 거래 없이 시장 동향만 살피고 지나갑니다.",
-    apply: () => {}
-  });
-
-  e.push({
-    id: "stock_integrated_event", type: "투자 기회 & 시황", title: `📊 ${currentSeason} 증시 시황 및 투자 기회`,
-    desc: `[시장 이슈: ${tEvent.title}]\n${tEvent.desc}\n\n` +
-          `• 📈 급등 업종: ${upSector.name} (+${tEvent.upRate}% 상승)\n` +
-          `• 📉 급락 업종: ${downSector.name} (-${tEvent.downRate}% 하락)` +
-          stockFluctuationLog,
-    ok: () => true,
-    choices: stockChoices
-  });
-
-  // [F] 휴가 여행 (25%)
+  // [E] 휴가 여행 (25%)
   if (Math.random() < 0.25) {
     game.hasTravelOccurredThisYear = true;
     e.push(createTravelEventObj(currentSeason));
   }
 
-  // [G] 겨울 보너스
+  // [F] 겨울 보너스
   if (game.seasonIndex === 3 && game.jobKey !== "celebrity" && game.jobKey !== "entrepreneur" && game.jobKey !== "unemployed") {
     e.push({
       id: "job_bonus", type: "보너스", title: `❄️ 겨울 연말 특별 성과급`,
@@ -944,82 +1136,87 @@ function eventList() {
     });
   }
 
-  // [H] 결혼 이벤트
+  // [G] 결혼 이벤트 (35세~45세 구간 30% 확률 등장)
   const isMarriageBlocked = game.year < (game.marriageBlockedUntilYear || 0);
 
   if (!game.married && !game.divorced && !game.declaredSolo && game.gender === "남성" && !isMarriageBlocked) {
     const hasNoCar = !game.car || game.car.level === 0 || game.assets.car <= 0;
     const isBelowStudio = !game.housing || (game.housing.level !== undefined ? game.housing.level < 2 : false);
 
-    if (game.age >= 30 && (hasNoCar || isBelowStudio)) {
-      e.push({
-        id: "marriage_prerequisite_alert", type: "결혼 고민", title: `💭 ${currentSeason} 결혼에 대한 현실적인 장벽`,
-        desc: `주변 친구들이 하나둘 가정을 꾸리고 있지만, 자동차와 주택문제로 청혼을 꺼리게 됩니다.`,
-        ok: () => true,
-        choices: [
-          {
-            text: "자산 마련에 더 집중하기로 다짐한다",
-            result: "주택 UP이나 차량 UP을 통해 자립 기반을 마련한 뒤 결혼을 진행하기로 결심했습니다.",
-            apply: () => { game.stress = clamp(game.stress + 5); }
-          }
-        ]
-      });
-    } else {
-      if (game.age >= 45 && Math.random() < 0.60) {
+    const isInMarriageAgeWindow = (game.age >= 35 && game.age <= 45);
+    const passMarriageChance = !isInMarriageAgeWindow || (Math.random() < 0.30);
+
+    if (passMarriageChance) {
+      if (game.age >= 30 && (hasNoCar || isBelowStudio)) {
         e.push({
-          id: "marriage_intl", type: "인생", title: `💍 ${currentSeason} 국제결혼 주선`,
-          desc: "지인의 주선으로 국제결혼 만남이 성사되었습니다. 솔로 선언 시 향후 결혼 이벤트가 차단됩니다.",
+          id: "marriage_prerequisite_alert", type: "결혼 고민", title: `💭 ${currentSeason} 결혼에 대한 현실적인 장벽`,
+          desc: `주변 친구들이 하나둘 가정을 꾸리고 있지만, 자동차와 주택문제로 청혼을 꺼리게 됩니다.`,
           ok: () => true,
           choices: [
             {
-              text: "국제결혼을 진행한다 (예식 및 체류비 1,500만)",
-              result: "배우자와 함께 새로운 가정을 꾸렸습니다.",
-              apply: () => {
-                if (game.cash >= 15000000) game.cash -= 15000000; else game.debt += 15000000;
-                game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 20;
-              }
-            },
-            {
-              text: "평생 솔로를 선언한다 (앞으로 결혼 사절)",
-              result: "자유로운 싱글라이프를 선언했습니다!",
-              apply: () => { game.declaredSolo = true; game.stress -= 10; }
+              text: "자산 마련에 더 집중하기로 다짐한다",
+              result: "주택 UP이나 차량 UP을 통해 자립 기반을 마련한 뒤 결혼을 진행하기로 결심했습니다.",
+              apply: () => { game.stress = clamp(game.stress + 5); }
             }
           ]
         });
-      } else if (game.age >= 30 && game.age < 35 && Math.random() < 0.70) {
-        e.push({
-          id: "marriage_high", type: "인생", title: `💍 ${currentSeason} 결혼 결심`,
-          desc: "안정적인 직장과 보금자리를 바탕으로 연인과 부부의 연을 맺기로 결심했습니다.",
-          ok: () => true,
-          choices: [
-            {
-              text: "결혼식을 올린다 (예식 비용 3,000만)",
-              result: "축복 속에 결혼식을 올리고 가정을 꾸렸습니다!",
-              apply: () => {
-                if (game.cash >= 30000000) game.cash -= 30000000; else game.debt += 30000000;
-                game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 25;
-                game.marriageDelayCount = 0;
+      } else {
+        if (game.age >= 45 && Math.random() < 0.60) {
+          e.push({
+            id: "marriage_intl", type: "인생", title: `💍 ${currentSeason} 국제결혼 주선`,
+            desc: "지인의 주선으로 국제결혼 만남이 성사되었습니다. 솔로 선언 시 향후 결혼 이벤트가 차단됩니다.",
+            ok: () => true,
+            choices: [
+              {
+                text: "국제결혼을 진행한다 (예식 및 체류비 1,500만)",
+                result: "배우자와 함께 새로운 가정을 꾸렸습니다.",
+                apply: () => {
+                  if (game.cash >= 15000000) game.cash -= 15000000; else game.debt += 15000000;
+                  game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 20;
+                }
+              },
+              {
+                text: "평생 솔로를 선언한다 (앞으로 결혼 사절)",
+                result: "자유로운 싱글라이프를 선언했습니다!",
+                apply: () => { game.declaredSolo = true; game.stress -= 10; }
               }
-            },
-            {
-              text: "아직은 미룬다",
-              result: "",
-              apply: function() {
-                game.marriageDelayCount = (game.marriageDelayCount || 0) + 1;
-                if (game.marriageDelayCount >= 3) {
-                  game.health = clamp(game.health - 10);
-                  game.happiness = clamp(game.happiness - 25);
-                  game.stress = clamp(game.stress + 20);
-                  game.marriageBlockedUntilYear = game.year + 2;
+            ]
+          });
+        } else if (game.age >= 30 && game.age < 35 && Math.random() < 0.70) {
+          e.push({
+            id: "marriage_high", type: "인생", title: `💍 ${currentSeason} 결혼 결심`,
+            desc: "안정적인 직장과 보금자리를 바탕으로 연인과 부부의 연을 맺기로 결심했습니다.",
+            ok: () => true,
+            choices: [
+              {
+                text: "결혼식을 올린다 (예식 비용 3,000만)",
+                result: "축복 속에 결혼식을 올리고 가정을 꾸렸습니다!",
+                apply: () => {
+                  if (game.cash >= 30000000) game.cash -= 30000000; else game.debt += 30000000;
+                  game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 25;
                   game.marriageDelayCount = 0;
-                  this.result = "💔 [이별] 계속해서 결혼을 미루자 지친 여자친구가 결국 이별을 통보하고 떠났습니다. (건강 -10, 행복 -25, 스트레스 +20, 2년간 결혼 이벤트 차단)";
-                } else {
-                  this.result = `결혼을 미루고 일에 전념합니다. (결혼 미루기 ${game.marriageDelayCount}/3회)`;
+                }
+              },
+              {
+                text: "아직은 미룬다",
+                result: "",
+                apply: function() {
+                  game.marriageDelayCount = (game.marriageDelayCount || 0) + 1;
+                  if (game.marriageDelayCount >= 3) {
+                    game.health = clamp(game.health - 10);
+                    game.happiness = clamp(game.happiness - 25);
+                    game.stress = clamp(game.stress + 20);
+                    game.marriageBlockedUntilYear = game.year + 2;
+                    game.marriageDelayCount = 0;
+                    this.result = "💔 [이별] 계속해서 결혼을 미루자 지친 여자친구가 결국 이별을 통보하고 떠났습니다. (건강 -10, 행복 -25, 스트레스 +20, 2년간 결혼 이벤트 차단)";
+                  } else {
+                    this.result = `결혼을 미루고 일에 전념합니다. (결혼 미루기 ${game.marriageDelayCount}/3회)`;
+                  }
                 }
               }
-            }
-          ]
-        });
+            ]
+          });
+        }
       }
     }
   }
@@ -1038,7 +1235,7 @@ function generateEvent() {
 function renderEvent() {
   $("eventType").textContent = `${SEASONS[game.seasonIndex]} · ${currentEvent.type}`;
   $("eventTitle").textContent = currentEvent.title;
-  $("eventDescription").textContent = currentEvent.desc;
+  $("eventDescription").innerHTML = currentEvent.desc;
   $("choices").innerHTML = "";
 
   currentEvent.choices.forEach((c, i) => {
@@ -1081,7 +1278,7 @@ function resolveEvent(i) {
 }
 
 // -------------------------------------------------------------
-// 턴 진행 및 주거비용 자동 합산 생활비 청구
+// 턴 진행 (결혼 가중 생활비 및 치킨집 운영 연수 합산)
 // -------------------------------------------------------------
 function advanceYear() {
   if (!eventResolved) return;
@@ -1089,10 +1286,14 @@ function advanceYear() {
   if (game.seasonIndex === 3) {
     let baseLivingCost = 0;
 
-    // 1. 기본 일상 생활비 산정
     if (game.isFirstYearWinter) {
       baseLivingCost = game.firstYearLivingCostFixed || 4000000;
       game.isFirstYearWinter = false;
+
+      if (game.cash < 0) {
+        const liquidLog = liquidateAssetsForCash();
+        alert(`[첫해 겨울 생활비 지출]\n약정된 첫해 생활비 ${won(baseLivingCost)}이 차감되었습니다.\n${liquidLog}`);
+      }
     } else {
       if (game.annualIncome > 0) {
         const livingRate = 0.40 + Math.random() * 0.10;
@@ -1100,16 +1301,19 @@ function advanceYear() {
       }
     }
 
-    // 2. [신규] 주거 형태별 연간 주거비 산정 및 합산
+    // 결혼 다음 해부터 기본 생활비 1.5배 가중
+    if (game.married && game.marriageYear && game.year > game.marriageYear) {
+      baseLivingCost = Math.round(baseLivingCost * 1.5);
+    }
+
+    // 주거비(월세 연세 및 대출이자 연 4%) 합산
     let housingAnnualCost = 0;
     let housingCostNote = "";
 
-    // (1) 월세 형태 (연세 합산: 월세 * 12)
     if (game.housing.type === "monthly" && game.housing.rent > 0) {
       housingAnnualCost = game.housing.rent * 12;
       housingCostNote = `월세 연 ${won(housingAnnualCost)}`;
     }
-    // (2) 대출금 보유 시 만기 일시상환 대출 이자 (연 4%)
     if (game.debt > 0) {
       const loanInterest = Math.round(game.debt * 0.04);
       housingAnnualCost += loanInterest;
@@ -1122,10 +1326,10 @@ function advanceYear() {
 
     if (game.cash < 0) {
       const liquidLog = liquidateAssetsForCash();
-      alert(`[겨울 연간 생활비 및 주거비 지출]\n총 지출: ${won(totalAnnualLivingCost)} (기본 생활비 ${won(baseLivingCost)}${housingCostNote ? ' + ' + housingCostNote : ''})\n현금이 부족하여 자산이 처분되었습니다.\n${liquidLog}`);
+      alert(`[겨울 연간 생활비 및 주거비 지출]\n총 지출: ${won(totalAnnualLivingCost)} (기본 생활비 ${won(baseLivingCost)}${game.married && game.year > game.marriageYear ? ' [결혼가중 1.5배]' : ''}${housingCostNote ? ' + ' + housingCostNote : ''})\n현금이 부족하여 자산이 처분되었습니다.\n${liquidLog}`);
     }
 
-    // 3. [신규] 84㎡ 전세 거주 시 2년마다 보증금 5% 인상
+    // 전세 2년 갱신 시 5% 인상
     if (game.housing.type === "jeonse") {
       game.housingYearsInCurrent = (game.housingYearsInCurrent || 0) + 1;
       if (game.housingYearsInCurrent >= 2) {
@@ -1150,12 +1354,22 @@ function advanceYear() {
     game.year++;
     game.seasonIndex = 0;
 
-    // 근속 연차 증가 (승진 심사 카운터)
+    // 치킨집 매장별 운영 연수 증가
+      if (game.jobKey === "entrepreneur") {
+      game.chickenStore1Years = (game.chickenStore1Years || 0) + 1;
+      if (game.hasOpenedStore2) {
+        game.chickenStore2Years = (game.chickenStore2Years || 0) + 1;
+      }
+      if (game.hasOpenedStore3) {
+        game.chickenStore3Years = (game.chickenStore3Years || 0) + 1; // [추가] 3호점 운영 누적
+      }
+    }
+
+    // 승진 연차 증가
     if (game.career && game.career.yearsInCurrentRank !== undefined) {
       game.career.yearsInCurrentRank++;
     }
 
-    // 여행 및 뉴스 주기 리셋
     if (game.hasTravelOccurredThisYear) {
       game.yearsWithoutTravelEvent = 0;
     } else {
@@ -1164,13 +1378,13 @@ function advanceYear() {
     game.hasTravelOccurredThisYear = false;
     game.newsSeasonInYear = Math.floor(Math.random() * 4);
 
-    // 자동차 스트레스
     if (game.assets.car > 0) {
       game.carHoldingYears = (game.carHoldingYears || 0) + 1;
     } else {
       const oldStress = game.stress;
       const noCarStress = Math.floor(Math.random() * 10) + 1;
       game.stress = clamp(game.stress + noCarStress);
+
       const prevBracket = Math.floor(oldStress / 20);
       const newBracket = Math.floor(game.stress / 20);
       if (newBracket > prevBracket) {
@@ -1182,7 +1396,6 @@ function advanceYear() {
     const repIncrease = Math.floor(Math.random() * 10) + 1;
     game.reputation = clamp(game.reputation + repIncrease);
 
-    // 봄 연소득 입금
     if (game.jobKey !== "unemployed") {
       if (game.jobKey === "factory_worker") {
         if (Math.random() >= 0.5) {
@@ -1242,7 +1455,6 @@ function updateUI() {
   $("netWorthText").textContent = `순자산 ${won(netWorth())}`;
   $("carText").textContent = `${game.car.name} (${won(game.assets.car)})`;
 
-  // [수정] 가족 정보창에서 '여행 미이행' 내용 완전히 제거
   $("familyText").textContent = game.divorced ? "돌싱" : (game.married ? (game.children ? `배우자·자녀 ${game.children}명` : "기혼") : "미혼");
   $("marriageStateText").textContent = `병역: ${game.military}`;
 
@@ -1440,7 +1652,6 @@ function closeStockModal() {
 function buySpecificStockSector(sectorId) {
   const sec = THEME_SECTORS.find(s => s.id === sectorId);
 
-  // 추가 매수: 확인창 없이 즉시 매수
   if (game.assets.stock > 0 && game.currentStockSector === sectorId) {
     if (game.cash < 10000000) return alert("현금 1,000만원이 필요합니다.");
     game.cash -= 10000000;
@@ -1452,7 +1663,6 @@ function buySpecificStockSector(sectorId) {
     return;
   }
 
-  // 갈아타기: 5% 수수료 차감 후 전환
   if (game.assets.stock > 0 && game.currentStockSector !== sectorId) {
     const fee = Math.round(game.assets.stock * 0.05);
     const oldSecName = THEME_SECTORS.find(s => s.id === game.currentStockSector)?.name;
@@ -1468,7 +1678,6 @@ function buySpecificStockSector(sectorId) {
     return;
   }
 
-  // 신규 매수
   if (game.cash < 10000000) return alert("현금 1,000만원이 필요합니다.");
   game.cash -= 10000000;
   game.assets.stock += 10000000;
@@ -1491,8 +1700,53 @@ function sellAllStock() {
 }
 
 // -------------------------------------------------------------
-// 주택 UP / DOWN 실행 (지역별 대출 규정 및 일시불/대출 선택 반영)
+// 84㎡ 아파트 매매 방식 모달 제어 및 주택 UP / DOWN
 // -------------------------------------------------------------
+function openHouseModal(nextHouse, refundDeposit, loanMax, downPayment, cashNeededWithLoan, cashNeededFull) {
+  const modal = $("houseModal");
+  if (!modal) return;
+
+  $("houseModalDesc").textContent = `[${nextHouse.name}] 매매가: ${won(nextHouse.houseValue)} (기존 보증금 ${won(refundDeposit)} 환급 예정)`;
+  $("modalLoanText").textContent = `${Math.round(nextHouse.loanRate * 100)}% 대출(${won(loanMax)}, 연 4% 이자) | 필요현금: ${won(cashNeededWithLoan)}`;
+
+  $("houseLoanBtn").onclick = () => {
+    if (game.cash < cashNeededWithLoan) {
+      alert(`대출 매매를 위한 현금이 부족합니다. (최소 ${won(cashNeededWithLoan)} 필요)`);
+      return;
+    }
+    game.cash += refundDeposit;
+    game.cash -= downPayment;
+    game.assets.house = nextHouse.houseValue;
+    game.debt += loanMax;
+    game.housing = { ...nextHouse, owned: true, deposit: 0 };
+    game.happiness = clamp(game.happiness + 15);
+    closeHouseModal();
+    updateUI();
+  };
+
+  $("houseFullBtn").onclick = () => {
+    if (game.cash < cashNeededFull) {
+      alert(`일시불 매매를 위한 현금이 부족합니다. (최소 ${won(cashNeededFull)} 필요)`);
+      return;
+    }
+    game.cash += refundDeposit;
+    game.cash -= nextHouse.houseValue;
+    game.assets.house = nextHouse.houseValue;
+    game.housing = { ...nextHouse, owned: true, deposit: 0 };
+    game.happiness = clamp(game.happiness + 20);
+    closeHouseModal();
+    updateUI();
+  };
+
+  $("closeHouseModalBtn").onclick = () => closeHouseModal();
+  modal.classList.remove("hidden");
+}
+
+function closeHouseModal() {
+  const modal = $("houseModal");
+  if (modal) modal.classList.add("hidden");
+}
+
 function houseUp() {
   const regionalHousing = getRegionalHousingLevels(game.currentRegion);
   const curLevel = game.housing.level !== undefined ? game.housing.level : 0;
@@ -1501,47 +1755,15 @@ function houseUp() {
   const next = regionalHousing[curLevel + 1];
   const refundDeposit = game.housing.deposit || 0;
 
-  // 1. [84㎡ 아파트 자가 매매]: 일시불 매매 vs 지역별 지정 대출 매매 선택
   if (next.name === "84㎡ 아파트 자가") {
     const loanMax = Math.round(next.houseValue * next.loanRate);
     const downPayment = next.houseValue - loanMax;
     const cashNeededWithLoan = downPayment - refundDeposit;
     const cashNeededFull = next.houseValue - refundDeposit;
 
-    const opt = prompt(
-      `[${next.name} 매매 방식 선택]\n\n` +
-      `대상 매매가: ${won(next.houseValue)} (현재 보증금 ${won(refundDeposit)} 환급 예정)\n\n` +
-      `1. [대출 매매] : 대출 ${Math.round(next.loanRate * 100)}%(${won(loanMax)} 대출, 연 4% 이자 납부)\n` +
-      `   👉 실제 필요 현금: ${won(cashNeededWithLoan)}\n\n` +
-      `2. [일시불 매매]: 대출 0원 (전액 현금 납부)\n` +
-      `   👉 실제 필요 현금: ${won(cashNeededFull)}\n\n` +
-      `원하시는 방식의 번호(1 또는 2)를 입력하세요:`
-    );
-
-    if (opt === "1") {
-      if (game.cash < cashNeededWithLoan) {
-        return alert(`대출 매매를 위한 현금이 부족합니다. 최소 ${won(cashNeededWithLoan)}의 현금이 필요합니다.`);
-      }
-      game.cash += refundDeposit;
-      game.cash -= downPayment;
-      game.assets.house = next.houseValue;
-      game.debt += loanMax;
-      game.housing = { ...next, owned: true, deposit: 0 };
-      game.happiness = clamp(game.happiness + 15);
-    } else if (opt === "2") {
-      if (game.cash < cashNeededFull) {
-        return alert(`일시불 매매를 위한 현금이 부족합니다. 최소 ${won(cashNeededFull)}의 현금이 필요합니다.`);
-      }
-      game.cash += refundDeposit;
-      game.cash -= next.houseValue;
-      game.assets.house = next.houseValue;
-      game.housing = { ...next, owned: true, deposit: 0 };
-      game.happiness = clamp(game.happiness + 20);
-    } else {
-      return; // 취소
-    }
+    openHouseModal(next, refundDeposit, loanMax, downPayment, cashNeededWithLoan, cashNeededFull);
+    return;
   } 
-  // 2. 대형/고급 아파트 (일시불 전액 매매만 가능, 대출 불가)
   else if (next.houseValue > 0) {
     const cashNeeded = next.houseValue - refundDeposit;
     const confirmMsg = `[${next.name} 일시불 매매 견적]\n\n` +
@@ -1562,7 +1784,6 @@ function houseUp() {
     game.housing = { ...next, owned: true, deposit: 0 };
     game.happiness = clamp(game.happiness + 25);
   } 
-  // 3. 월세 / 전세 상향 이사
   else {
     const diff = next.deposit - refundDeposit;
     const confirmMsg = `[주택 UP 견적]\n\n` +
@@ -1623,9 +1844,6 @@ function houseDown() {
   updateUI();
 }
 
-// -------------------------------------------------------------
-// 차량 UP / DOWN 실행
-// -------------------------------------------------------------
 function carUp() {
   const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if (curLevel >= carLevels.length - 1) return alert("이미 최고급 플래그십 차량을 보유 중입니다.");
@@ -1730,7 +1948,7 @@ function updateProfilePreview() {
 }
 
 // -------------------------------------------------------------
-// [신규] 3열 동시 회전 & 순차 정지 슬롯머신 룰렛 시스템
+// 3열 슬롯머신 룰렛 시스템
 // -------------------------------------------------------------
 let tripleSlotState = {
   spinning: false,
@@ -1765,7 +1983,6 @@ function startTripleSlotRoulette(baseData) {
   tripleSlotState.base = baseData;
   tripleSlotState.spinning = false;
 
-  // 1. [1번 릴] 학력 & 병역 조합 추첨
   const educations = [
     { title: "고졸", addAge: 0 },
     { title: "전문대졸 (2년제)", addAge: 2 },
@@ -1801,24 +2018,20 @@ function startTripleSlotRoulette(baseData) {
   const chosen1 = combos[Math.floor(Math.random() * combos.length)];
   tripleSlotState.target1 = chosen1;
 
-  // 2. [2번 릴] 독립 거주 지역 추첨
   const chosen2 = REGIONS[Math.floor(Math.random() * REGIONS.length)];
   tripleSlotState.target2 = chosen2;
 
-  // 3. [3번 릴] 조건부 직업군 필터링 및 추첨
   const edu = chosen1.edu;
   const reg = chosen2;
   const mili = chosen1.mili;
 
   const eligibleJobKeys = Object.keys(jobs).filter(k => {
     if (k === "unemployed") return false;
-    // 지역 조건
     if (["large_corp", "researcher"].includes(k) && reg !== "경기도") return false;
     if (["sme_corp", "celebrity"].includes(k) && !["서울", "경기도"].includes(reg)) return false;
     if (["developer", "finance"].includes(k) && reg !== "서울") return false;
     if (k === "large_factory" && reg !== "경상도") return false;
 
-    // 학력 조건
     if (["developer", "doctor", "researcher"].includes(k) && edu !== "대학원 졸업") return false;
     if (["large_corp", "professional", "teacher", "finance"].includes(k) && !["대졸 (4년제)", "대학원 졸업"].includes(edu)) return false;
     if (["large_factory", "factory_worker"].includes(k) && edu !== "고졸") return false;
@@ -1831,14 +2044,13 @@ function startTripleSlotRoulette(baseData) {
   const chosen3Key = eligibleJobKeys[Math.floor(Math.random() * eligibleJobKeys.length)];
   tripleSlotState.target3Key = chosen3Key;
 
-  // 릴 트랙 DOM 세팅
   setupReelTrack("reelTrack1", combos, chosen1.label, x => x.label, x => x.desc);
   setupReelTrack("reelTrack2", REGIONS.map(r => ({ label: r, desc: "독립 거주지" })), chosen2, x => x.label, x => x.desc);
   setupReelTrack("reelTrack3", eligibleJobKeys.map(k => ({ key: k, label: jobs[k].name, desc: jobs[k].desc.slice(0, 16) + '...' })), jobs[chosen3Key].name, x => x.label, x => x.desc);
 
-  $("reelStatus1").textContent = "회전 대기";
-  $("reelStatus2").textContent = "회전 대기";
-  $("reelStatus3").textContent = "회전 대기";
+  $("reelStatus1").textContent = "대기 중";
+  $("reelStatus2").textContent = "대기 중";
+  $("reelStatus3").textContent = "대기 중";
   $("rouletteResult").classList.add("hidden");
   $("rouletteConfirmBtn").classList.add("hidden");
   $("rouletteStartBtn").classList.remove("hidden");
@@ -1852,7 +2064,7 @@ async function spinReel(trackId, targetLabel, duration) {
   let targetIndex = items.findIndex((el, idx) => idx >= items.length / 2 && el.getAttribute("data-label") === targetLabel);
   if (targetIndex === -1) targetIndex = Math.floor(items.length / 2);
 
-  const itemHeight = 100;
+  const itemHeight = 76;
   const targetY = -(targetIndex * itemHeight);
 
   track.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.2, 1)`;
@@ -1870,24 +2082,18 @@ async function runTripleSlotSpin() {
   $("reelStatus2").textContent = "🌀 회전 중...";
   $("reelStatus3").textContent = "🌀 회전 중...";
 
-  // 1번 슬롯 회전 시작 (2.5초 후 멈춤)
   const p1 = spinReel("reelTrack1", tripleSlotState.target1.label, 2.5).then(() => {
     $("reelStatus1").textContent = `✓ [${tripleSlotState.target1.label}]`;
   });
-
-  // 2번 슬롯 회전 시작 (3.8초 후 멈춤)
   const p2 = spinReel("reelTrack2", tripleSlotState.target2, 3.8).then(() => {
     $("reelStatus2").textContent = `✓ [${tripleSlotState.target2}]`;
   });
-
-  // 3번 슬롯 회전 시작 (5.0초 후 멈춤)
   const p3 = spinReel("reelTrack3", jobs[tripleSlotState.target3Key].name, 5.0).then(() => {
     $("reelStatus3").textContent = `✓ [${jobs[tripleSlotState.target3Key].name}]`;
   });
 
   await Promise.all([p1, p2, p3]);
 
-  // 최종 결과 패널 표시
   const t1 = tripleSlotState.target1;
   const t2 = tripleSlotState.target2;
   const t3 = jobs[tripleSlotState.target3Key];
@@ -1925,7 +2131,7 @@ function finalizeGameStart() {
 }
 
 // -------------------------------------------------------------
-// 부트스트랩 및 이벤트 바인딩
+// 부트스트랩 및 이벤트 리스너 바인딩
 // -------------------------------------------------------------
 function setupApplication() {
   initBirthUI();
