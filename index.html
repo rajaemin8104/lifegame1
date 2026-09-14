@@ -8,7 +8,7 @@
 </head>
 <body>
 <div class="app">
-  <!-- 1. 상단 헤더 영역 높이 최적화 (한 줄 구성) -->
+  <!-- 1. 상단 헤더 영역 -->
   <header class="site-header">
     <div class="header-titles">
       <h1>MY LIFE <span class="header-sub-desc">현실 인생 시뮬레이션</span></h1>
@@ -18,10 +18,10 @@
     </div>
   </header>
 
+  <!-- 캐릭터 생성 화면 -->
   <section id="startScreen">
     <div class="start-card character-card">
       <span class="eyebrow">MY LIFE · CHARACTER CREATION</span>
-      <!-- 2. 프로필 안내 폰트 크기 축소 -->
       <h3 class="profile-subtitle-small">당신의 기본 프로필을 설정하고 3단계 룰렛을 거쳐 인생을 시작합니다.</h3>
 
       <div class="profile-form">
@@ -71,50 +71,37 @@
         <div><span>생일</span><strong id="previewBirth">2006-01-01</strong></div>
       </div>
 
-      <!-- 3. 하단 안내문구들 전부 삭제 완료 -->
-
       <button id="createCharacterBtn" class="primary full">🎰 3열 슬롯 인생 룰렛 시작하기</button>
-      <button id="continueBtn" class="secondary full hidden">저장된 인생 이어하기</button>
     </div>
   </section>
 
-  <!-- 3단계 순차 룰렛 스크린 (설명 문구 축소 및 삭제 반영) -->
+  <!-- 3단계 룰렛 스크린 -->
   <section id="rouletteScreen" class="hidden">
     <div class="roulette-card triple-card">
       <span class="eyebrow" id="rouletteStepIndicator">DESTINY SLOTS · 3-REEL ROULETTE</span>
       <h2 id="rouletteTitle">인생의 세 가지 조건이 회전합니다</h2>
-      <!-- 안내 문구 삭제 반영 -->
 
       <div class="triple-roulette-container">
         <div class="reel-box">
           <div class="reel-header">1. 학력 & 병역</div>
           <div class="reel-pointer">▼</div>
-          <div class="reel-window">
-            <div id="reelTrack1" class="reel-track"></div>
-          </div>
+          <div class="reel-window"><div id="reelTrack1" class="reel-track"></div></div>
           <div id="reelStatus1" class="reel-status">대기 중</div>
         </div>
-
         <div class="reel-box">
           <div class="reel-header">2. 거주지</div>
           <div class="reel-pointer">▼</div>
-          <div class="reel-window">
-            <div id="reelTrack2" class="reel-track"></div>
-          </div>
+          <div class="reel-window"><div id="reelTrack2" class="reel-track"></div></div>
           <div id="reelStatus2" class="reel-status">대기 중</div>
         </div>
-
         <div class="reel-box">
           <div class="reel-header">3. 직업</div>
           <div class="reel-pointer">▼</div>
-          <div class="reel-window">
-            <div id="reelTrack3" class="reel-track"></div>
-          </div>
+          <div class="reel-window"><div id="reelTrack3" class="reel-track"></div></div>
           <div id="reelStatus3" class="reel-status">대기 중</div>
         </div>
       </div>
 
-      <!-- 룰렛 완료 텍스트 폰트 크기 축소 클래스 적용 -->
       <div id="rouletteResult" class="roulette-result hidden compact-result">
         <span id="rouletteResultBadge">인생 조건 확정 완료</span>
         <h1 id="rouletteResultJob">-</h1>
@@ -128,6 +115,7 @@
     </div>
   </section>
 
+  <!-- 게임 메인 스크린 -->
   <section id="gameScreen" class="hidden">
     <div class="year-header compact">
       <div>
@@ -143,23 +131,19 @@
     <div class="status-grid compact-grid">
       <div class="stat-card">
         <span>💼 커리어 / 거주지</span>
-        <strong id="jobText">-</strong>
-        <small id="careerText">-</small>
+        <strong id="jobText">-</strong><small id="careerText">-</small>
       </div>
       <div class="stat-card">
         <span>💵 연소득 / 생애소득</span>
-        <strong id="incomeText">0원</strong>
-        <small id="cumIncomeText">생애소득 0원</small>
+        <strong id="incomeText">0원</strong><small id="cumIncomeText">생애소득 0원</small>
       </div>
       <div class="stat-card">
         <span>🏠 주거 & 차량</span>
-        <strong id="housingText">-</strong>
-        <small id="carText">-</small>
+        <strong id="housingText">-</strong><small id="carText">-</small>
       </div>
       <div class="stat-card">
         <span>👨‍👩‍👧 가족 상태</span>
-        <strong id="familyText">미혼</strong>
-        <small id="marriageStateText">돌싱 여부/미혼</small>
+        <strong id="familyText">미혼</strong><small id="marriageStateText">돌싱 여부/미혼</small>
       </div>
       <div class="stat-card">
         <span>📊 스탯 요약</span>
@@ -172,17 +156,13 @@
       </div>
       <div class="stat-card highlight-card">
         <span>💰 총자산 / 순자산</span>
-        <strong id="totalAsset">0원</strong>
-        <small id="netWorthText">순자산 0원</small>
+        <strong id="totalAsset">0원</strong><small id="netWorthText">순자산 0원</small>
       </div>
     </div>
 
     <section class="panel event-panel">
       <div class="panel-heading">
-        <div>
-          <span class="eyebrow">SEASON EVENT</span>
-          <h2 id="eventTitle">계절의 사건</h2>
-        </div>
+        <div><span class="eyebrow">SEASON EVENT</span><h2 id="eventTitle">계절의 사건</h2></div>
         <span id="eventType" class="badge">인생</span>
       </div>
       <p id="eventDescription"></p>
@@ -193,7 +173,6 @@
         <div id="resultText"></div>
         <div id="resultChanges" class="result-changes"></div>
       </div>
-
       <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음으로 →</button>
     </section>
 
@@ -238,17 +217,9 @@
         <table>
           <thead>
             <tr>
-              <th>나이/분기</th>
-              <th>직업 / 직급</th>
-              <th>연소득</th>
-              <th>생활비 지출</th>
-              <th>주택 자산</th>
-              <th>자동차 자산</th>
-              <th>주식 자산</th>
-              <th>대출 잔액</th>
-              <th>현금</th>
-              <th>합계 자산</th>
-              <th>순자산</th>
+              <th>나이/분기</th><th>직업 / 직급</th><th>연소득</th><th>생활비 지출</th>
+              <th>주택 자산</th><th>자동차 자산</th><th>주식 자산</th><th>대출 잔액</th>
+              <th>현금</th><th>합계 자산</th><th>순자산</th>
             </tr>
           </thead>
           <tbody id="historyBody"></tbody>
@@ -257,7 +228,7 @@
     </section>
   </section>
 
-  <!-- 주식 거래 모달 (4. 줄바꿈 방지 및 한줄 정렬 클래스 적용) -->
+  <!-- 각종 모달창 -->
   <div id="stockModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -303,10 +274,8 @@
       <span class="eyebrow">AGE 60 · LIFE COMPLETE</span>
       <h1 id="endingTitle">당신의 인생 결산</h1>
       <p id="endingMessage" class="ending-intro"></p>
-      
       <div id="endingStats" class="status-grid compact-grid ending-grid"></div>
       <div class="chart-wrap ending-chart"><canvas id="endingChart"></canvas></div>
-
       <div class="ending-actions">
         <button id="endingViewRecordBtn" class="secondary full">📖 전체 인생 기록 연표 보기</button>
         <button id="endingNewBtn" class="primary full">🔄 새로운 인생 시작하기</button>
@@ -314,7 +283,10 @@
     </div>
   </section>
 </div>
+<!-- JS 파일 분할 임포트 -->
 <script src="news.js"></script>
-<script src="game.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="ui.js"></script>
 </body>
 </html>
