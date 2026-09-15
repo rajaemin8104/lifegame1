@@ -106,7 +106,7 @@ function updateUI() {
       <div><span>학력 / 병역 / 거주</span><strong>${game.education} · ${game.military} · ${game.currentRegion}</strong></div>
       <div><span>현재 평판</span><strong>⭐ ${game.reputation}점 ${game.reputation >= 90 ? '(승진 유력)' : (game.reputation < 50 ? '(해고 위험)' : '(보통)')}</strong></div>
       <div><span>현재 연소득</span><strong>${won(game.annualIncome)} ${isGov ? '(호봉제)' : (canNeg ? '(협상가능)' : '')}</strong></div>
-      <div><span>승진 현황</span><strong style="font-size:12px">${promoInfo}</strong></div>
+      <div><span>승진 현황</span><strong style="font-size:13px">${promoInfo}</strong></div>
     `;
   }
   updateActionButtonsLabel(); renderHistory(); renderTimeline(); drawChart("assetChart");
@@ -126,7 +126,11 @@ function updateActionButtonsLabel() {
   const curCLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if ($("carUpBtn")) {
     if (curCLevel >= carLevels.length - 1) { $("carUpBtn").textContent = "🚗 차량 UP (최고 등급)"; $("carUpBtn").disabled = true; }
-    else { $("carUpBtn").textContent = `🚗 차량 UP (${carLevels[curCLevel + 1].name}: ${won(carLevels[curCLevel + 1].value - Math.round(game.assets.car * 0.9))} 필요)`; $("carUpBtn").disabled = false; }
+    else { $("carUpBtn").textContent = `🚗 차량 UP (${carLevels[curCLevel + 1].name})`; $("carUpBtn").disabled = false; }
+  }
+  if ($("carNewBtn")) {
+    if (curCLevel <= 0) { $("carNewBtn").disabled = true; }
+    else { $("carNewBtn").disabled = false; }
   }
   if ($("carDownBtn")) {
     if (curCLevel <= 0) { $("carDownBtn").textContent = "📉 차량 DOWN (차량 없음)"; $("carDownBtn").disabled = true; }
@@ -134,29 +138,138 @@ function updateActionButtonsLabel() {
   }
 }
 
+// [업데이트] 탭 기능 및 연대별 기록 분할 표시
+let currentTableTab = 2; // 기본값: 20대
+let currentHistoryTab = 2;
+
+function setTableTab(decade) {
+  currentTableTab = decade;
+  renderHistory();
+  document.querySelectorAll('.table-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.tab) === decade);
+  });
+}
+
+function setHistoryTab(decade) {
+  currentHistoryTab = decade;
+  renderTimeline();
+  document.querySelectorAll('.record-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.tab) === decade);
+  });
+}
+
 function renderHistory() {
   $("historyCount").textContent = `${game.history.length}회 기록`;
-  $("historyBody").innerHTML = game.history.map(h => `<tr><td><strong>${h.age}세</strong><br><small>${h.year} (${h.season})</small></td><td>${h.job}<br><small style="color:#6b7280">${h.career}</small></td><td>${won(h.income)}</td><td style="color:#dc2626">${h.livingCost > 0 ? `-${won(h.livingCost)}` : '-'}</td><td>${won(h.houseAsset)}</td><td>${won(h.carAsset)}</td><td>${won(h.stockAsset)}</td><td style="color:#dc2626">${h.debtAsset > 0 ? won(h.debtAsset) : '-'}</td><td>${won(h.cashAsset)}</td><td style="color:#2563eb"><strong>${won(h.totalAsset)}</strong></td><td><strong>${won(h.netWorth)}</strong></td></tr>`).join("");
+  
+  const decadeStart = currentTableTab * 10;
+  const decadeEnd = decadeStart + 9;
+  const filtered = game.history.filter(h => h.age >= decadeStart && h.age <= decadeEnd);
+
+  $("historyBody").innerHTML = filtered.map(h => `
+    <tr>
+      <td><strong>${h.age}세</strong><br><small>${h.year} (${h.season})</small></td>
+      <td>${h.job}<br><small style="color:#6b7280">${h.career}</small></td>
+      <td style="color:#16a34a">${h.income > 0 ? `+${won(h.income)}` : '0원'}</td>
+      <td style="color:#dc2626">${h.livingCost > 0 ? `-${won(h.livingCost)}` : '0원'}</td>
+      <td>${won(h.houseAsset)}</td>
+      <td>${won(h.carAsset)}</td>
+      <td>${won(h.stockAsset)}</td>
+      <td style="color:#dc2626">${h.debtAsset > 0 ? won(h.debtAsset) : '-'}</td>
+      <td>${won(h.cashAsset)}</td>
+      <td style="color:#2563eb"><strong>${won(h.netWorth)}</strong></td>
+    </tr>
+  `).join("");
 }
 
 function renderTimeline() {
   if (!game) return;
-  $("timeline").innerHTML = game.history.map(h => `<article class="timeline-item"><div style="font-weight:bold">${h.age}세 (${h.year} ${h.season}) - ${h.job} (${h.career})</div><div style="margin-top:4px;color:#6b7280">${h.event}</div><div style="margin-top:6px">연소득: ${won(h.income)} ${h.livingCost > 0 ? `| 연지출: -${won(h.livingCost)}` : ''} | 주거: ${h.housing} | 대출: ${won(h.debtAsset)} | 총자산: ${won(h.totalAsset)} | 순자산: ${won(h.netWorth)}</div></article>`).join("");
+  const decadeStart = currentHistoryTab * 10;
+  const decadeEnd = decadeStart + 9;
+  const filtered = game.history.filter(h => h.age >= decadeStart && h.age <= decadeEnd);
+
+  $("timeline").innerHTML = filtered.map(h => `
+    <article class="timeline-item">
+      <div style="font-weight:bold">${h.age}세 (${h.year} ${h.season}) - ${h.job} (${h.career})</div>
+      <div style="margin-top:6px;color:#475569; line-height:1.4;">${h.event}</div>
+      <div style="margin-top:8px; font-size:12px;">
+        소득: <span style="color:#16a34a">${won(h.income)}</span> | 
+        지출: <span style="color:#dc2626">${won(h.livingCost)}</span> | 
+        주거: ${h.housing} | 대출: ${won(h.debtAsset)} | 
+        <strong>순자산: ${won(h.netWorth)}</strong>
+      </div>
+    </article>
+  `).join("");
 }
 
+// [업데이트] 순자산 기준 특정 연령대 막대그래프 렌더링
 function drawChart(id) {
   const canvas = $(id); if (!canvas || !game || !game.history.length) return;
-  const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1, w = Math.max(300, r.width), h = Math.max(160, r.height);
+  const ctx = canvas.getContext("2d");
+  const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(300, r.width), h = Math.max(180, r.height);
   canvas.width = w * dpr; canvas.height = h * dpr;
-  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
-  const pad = { l: 50, r: 15, t: 15, b: 25 }, data = game.history.map(x => x.totalAsset), max = Math.max(...data, 1), min = Math.min(...data, 0), range = max - min || 1;
-  ctx.clearRect(0, 0, w, h); ctx.strokeStyle = "#e5e7eb"; ctx.fillStyle = "#6b7280"; ctx.font = "10px Arial";
-  for (let i = 0; i <= 4; i++) { const y = pad.t + (h - pad.t - pad.b) * i / 4; ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke(); ctx.fillText(won(max - range * i / 4), 5, y + 3); }
-  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b; ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2; ctx.beginPath();
-  data.forEach((v, i) => { const x = pad.l + (data.length === 1 ? pw / 2 : pw * i / (data.length - 1)), y = pad.t + (max - v) / range * ph; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+  ctx.scale(dpr, dpr);
+  
+  const pad = { l: 60, r: 15, t: 25, b: 25 };
+  const targetAges = [20, 25, 30, 35, 40, 45, 50, 55, 60];
+  
+  // 지정된 연령대에 도달했을 때의 마지막 순자산 추출
+  const dataPoints = targetAges.map(age => {
+    const entries = game.history.filter(h => h.age === age);
+    if (entries.length > 0) return entries[entries.length - 1].netWorth;
+    return null; // 아직 해당 나이에 도달하지 않음
+  });
+  
+  const validData = dataPoints.filter(v => v !== null);
+  if (validData.length === 0) return;
+  
+  const maxVal = Math.max(...validData, 10000000); // 최소 축 단위 보정
+  const minVal = Math.min(...validData, 0); // 마이너스 자산 지원
+  const range = maxVal - minVal;
+  
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#e5e7eb"; ctx.fillStyle = "#6b7280"; ctx.font = "11px Arial";
+  
+  // Y축 5등분 가이드라인
+  for (let i = 0; i <= 4; i++) { 
+     const val = maxVal - range * (i / 4);
+     const y = pad.t + (h - pad.t - pad.b) * (i / 4); 
+     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke(); 
+     ctx.fillText(won(val), 5, y + 4); 
+  }
+  
+  const zeroY = pad.t + (maxVal / range) * (h - pad.t - pad.b);
+  if(minVal < 0) {
+     ctx.strokeStyle = "#9ca3af";
+     ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(w - pad.r, zeroY); ctx.stroke();
+  }
+  
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  const barWidth = (pw / targetAges.length) * 0.6;
+  
+  targetAges.forEach((age, i) => {
+     const xCenter = pad.l + (pw / targetAges.length) * (i + 0.5);
+     ctx.fillStyle = "#6b7280";
+     ctx.textAlign = "center";
+     ctx.fillText(age + "세", xCenter, h - 5);
+     
+     const val = dataPoints[i];
+     if (val !== null) {
+         const barH = (Math.abs(val) / range) * ph;
+         const barX = xCenter - barWidth / 2;
+         
+         ctx.fillStyle = val >= 0 ? "#3b82f6" : "#ef4444"; // +는 파란색, -는 붉은색
+         if (val >= 0) {
+             ctx.fillRect(barX, zeroY - barH, barWidth, barH);
+         } else {
+             ctx.fillRect(barX, zeroY, barWidth, barH);
+         }
+     }
+  });
 }
 
-// ======================== 주식 개별 거래 모달창 로직 ========================
+// ======================== 주식 모달 로직 ========================
 function openStockModal() {
   const modal = $("stockModal"); if (!modal) return;
   const currentSectorObj = THEME_SECTORS.find(s => s.id === game.currentStockSector);
@@ -171,6 +284,7 @@ function openStockModal() {
   modal.classList.remove("hidden");
 }
 function closeStockModal() { if ($("stockModal")) $("stockModal").classList.add("hidden"); }
+
 function buySpecificStockSector(sectorId) {
   const sec = THEME_SECTORS.find(s => s.id === sectorId);
   if (game.assets.stock > 0 && game.currentStockSector === sectorId) { if (game.cash < 10000000) return alert("현금이 부족합니다."); game.cash -= 10000000; game.assets.stock += 10000000; game.reputation = clamp(game.reputation - (Math.floor(Math.random() * 3) + 1)); updateUI(); openStockModal(); return; }
@@ -184,7 +298,13 @@ function buySpecificStockSector(sectorId) {
 }
 function sellAllStock() { if (game.assets.stock <= 0) return alert("보유 주식이 없습니다."); const v = game.assets.stock; game.cash += v; game.assets.stock = 0; game.currentStockSector = null; alert(`현금 ${won(v)} 확보.`); updateUI(); closeStockModal(); }
 
-// ======================== 주택 / 차량 조작 로직 (버그 수정됨) ========================
+// ======================== 주택 / 차량 조작 메뉴 연결 로직 ========================
+
+function openHouseMenuModal() { $("houseMenuModal").classList.remove("hidden"); }
+function closeHouseMenuModal() { $("houseMenuModal").classList.add("hidden"); }
+function openCarMenuModal() { $("carMenuModal").classList.remove("hidden"); }
+function closeCarMenuModal() { $("carMenuModal").classList.add("hidden"); }
+
 function openHouseModal(nextHouse, availableHousingFunds, loanMax, downPayment, cashNeededWithLoan, cashNeededFull) {
   const modal = $("houseModal"); if (!modal) return;
   
@@ -195,27 +315,24 @@ function openHouseModal(nextHouse, availableHousingFunds, loanMax, downPayment, 
     if (game.cash < cashNeededWithLoan) return alert(`현금이 부족합니다.`); 
     game.cash = game.cash + availableHousingFunds - downPayment; 
     game.assets.house = nextHouse.houseValue; 
-    game.debt = loanMax; // 기존 대출금은 처분 금액에서 뺐으므로 새 대출금으로 리셋
+    game.debt = loanMax; 
     game.housing = { ...nextHouse, owned: true, deposit: 0 }; 
     game.happiness = clamp(game.happiness + 15); 
-    closeHouseModal(); 
-    updateUI(); 
+    closeHouseModal(); closeHouseMenuModal(); updateUI(); 
   };
   
   $("houseFullBtn").onclick = () => { 
     if (game.cash < cashNeededFull) return alert(`일시불 매매를 위한 현금이 부족합니다.`); 
     game.cash = game.cash + availableHousingFunds - nextHouse.houseValue; 
     game.assets.house = nextHouse.houseValue; 
-    game.debt = 0; // 전액 상환 및 일시불 결제
+    game.debt = 0; 
     game.housing = { ...nextHouse, owned: true, deposit: 0 }; 
     game.happiness = clamp(game.happiness + 20); 
-    closeHouseModal(); 
-    updateUI(); 
+    closeHouseModal(); closeHouseMenuModal(); updateUI(); 
   };
   
   $("closeHouseModalBtn").onclick = () => closeHouseModal(); modal.classList.remove("hidden");
 }
-
 function closeHouseModal() { if ($("houseModal")) $("houseModal").classList.add("hidden"); }
 
 function houseUp() {
@@ -224,15 +341,13 @@ function houseUp() {
   if (curLevel >= regionalHousing.length - 1) return alert("이미 최고 등급 주택에 거주 중입니다.");
   const next = regionalHousing[curLevel + 1]; 
 
-  // [버그 수정] 기존에 자가인지 전/월세인지 판별하여 활용 가능 금액(순자산)을 정확히 계산
   let availableHousingFunds = 0;
   if (game.housing.type === "owned") {
-    availableHousingFunds = game.assets.house - game.debt; // 현재 집값에서 빚을 뺀 순수한 내 돈
+    availableHousingFunds = game.assets.house - game.debt; 
   } else {
-    availableHousingFunds = game.housing.deposit || 0; // 전월세면 보증금 환급
+    availableHousingFunds = game.housing.deposit || 0; 
   }
 
-  // 대출이 가능한 아파트 매매 모달
   if (next.name === "84㎡ 아파트 자가") { 
     const loanMax = Math.round(next.houseValue * next.loanRate);
     const downPayment = next.houseValue - loanMax;
@@ -242,36 +357,25 @@ function houseUp() {
     return; 
   }
   
-  // 대출 불가능한 일시불 대형/고급 아파트 매매
   if (next.houseValue > 0) {
     const cashNeeded = next.houseValue - availableHousingFunds; 
-    
-    const confirmMsg = `[일시불 매매 견적]\n\n매매가: ${won(next.houseValue)}\n기존 주택 처분 자금 (부채 제외): +${won(availableHousingFunds)}\n실제 필요 현금: ${won(cashNeeded)}\n\n매매하시겠습니까?`;
+    const confirmMsg = `[일시불 매매 견적]\n\n매매가: ${won(next.houseValue)}\n기존 주택 처분 자금: +${won(availableHousingFunds)}\n실제 필요 현금: ${won(cashNeeded)}\n\n매매하시겠습니까?`;
     if (!confirm(confirmMsg)) return;
-    
     if (game.cash < cashNeeded) return alert(`현금이 부족합니다. 추가로 ${won(cashNeeded - game.cash)}이 필요합니다.`);
     
     game.cash = game.cash + availableHousingFunds - next.houseValue; 
-    game.assets.house = next.houseValue; 
-    game.debt = 0; // 대출 없음
-    game.housing = { ...next, owned: true, deposit: 0 }; 
-    game.happiness = clamp(game.happiness + 25);
+    game.assets.house = next.houseValue; game.debt = 0; 
+    game.housing = { ...next, owned: true, deposit: 0 }; game.happiness = clamp(game.happiness + 25);
   } else { 
-    // 전세/월세 상향 이사
     const diff = next.deposit - availableHousingFunds; 
-    
-    const confirmMsg = `[상향 이사 견적]\n\n대상 주택: ${next.name} (보증금 ${won(next.deposit)})\n기존 주택/보증금 처분 자금: +${won(availableHousingFunds)}\n추가 필요 금액: ${won(diff)}\n\n이사를 진행하시겠습니까?`;
+    const confirmMsg = `[상향 이사 견적]\n\n대상 주택: ${next.name} (보증금 ${won(next.deposit)})\n기존 보증금 환급: +${won(availableHousingFunds)}\n추가 필요 금액: ${won(diff)}\n\n이사를 진행하시겠습니까?`;
     if (!confirm(confirmMsg)) return;
-    
     if (game.cash < diff) return alert(`현금이 부족합니다. 추가로 ${won(diff - game.cash)}이 필요합니다.`);
     
-    game.cash -= diff; // 계산식: game.cash = game.cash + availableHousingFunds - next.deposit;
-    game.assets.house = next.deposit; 
-    game.debt = 0; // 전/월세로 변경 시 기존 부채는 청산됨
-    game.housing = { ...next, owned: false }; 
-    game.happiness = clamp(game.happiness + 8);
+    game.cash -= diff; game.assets.house = next.deposit; game.debt = 0; 
+    game.housing = { ...next, owned: false }; game.happiness = clamp(game.happiness + 8);
   }
-  updateUI();
+  closeHouseMenuModal(); updateUI();
 }
 
 function houseDown() {
@@ -281,26 +385,19 @@ function houseDown() {
   const prev = regionalHousing[curLevel - 1];
   
   if (game.housing.type === "owned") {
-    // 자가 주택 처분 시 5% 감가상각 적용 후 부채 청산
     const sellPrice = Math.round(game.assets.house * 0.95); 
     const finalCashInHand = sellPrice - game.debt - prev.deposit;
     if (!confirm(`다운그레이드하시겠습니까?\n주택 매각 및 부채 상환 후 최종 확보 현금: ${won(finalCashInHand)} (행복 -10)`)) return;
     
     game.cash = game.cash + sellPrice - game.debt - prev.deposit; 
-    game.debt = 0; 
-    game.assets.house = prev.deposit; 
-    game.housing = { ...prev, owned: false }; 
-    game.happiness = clamp(game.happiness - 10);
+    game.debt = 0; game.assets.house = prev.deposit; 
+    game.housing = { ...prev, owned: false }; game.happiness = clamp(game.happiness - 10);
   } else {
-    // 전월세 보증금 환급
     const refund = (game.housing.deposit || 0) - prev.deposit; 
     if (!confirm(`하향 이사를 진행하시겠습니까?\n보증금 환급액: ${won(refund)}`)) return;
-    
-    game.cash += refund; 
-    game.assets.house = prev.deposit; 
-    game.housing = { ...prev, owned: false };
+    game.cash += refund; game.assets.house = prev.deposit; game.housing = { ...prev, owned: false };
   }
-  updateUI();
+  closeHouseMenuModal(); updateUI();
 }
 
 function carUp() {
@@ -309,14 +406,33 @@ function carUp() {
   const next = carLevels[curLevel + 1]; const needCash = next.value - Math.round(game.assets.car * 0.9);
   if (!confirm(`차량을 업그레이드하시겠습니까?\n필요 현금: ${won(needCash)}`)) return;
   if (game.cash < needCash) return alert(`현금이 부족합니다.`);
-  game.cash -= needCash; game.assets.car = next.value; game.car = { ...next }; game.carHoldingYears = 0; game.carCheckCount = 0; game.happiness = clamp(game.happiness + 8); updateUI();
+  game.cash -= needCash; game.assets.car = next.value; game.car = { ...next }; game.carHoldingYears = 0; game.carCheckCount = 0; game.happiness = clamp(game.happiness + 8); 
+  closeCarMenuModal(); updateUI();
 }
+
+// [업데이트] 동일 등급 신차 교환 (감가/노후도 초기화)
+function carNew() {
+  const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
+  if (curLevel <= 0) return alert("보유한 차량이 없어 신차 교환이 불가능합니다.");
+  const targetCar = carLevels[curLevel];
+  const tradeInVal = Math.round(game.assets.car * 0.9);
+  const needCash = targetCar.value - tradeInVal;
+  
+  if (!confirm(`[동일 등급 신차 교환]\n기존 차량 처분 보상액: ${won(tradeInVal)}\n동일 신차 구입가: ${won(targetCar.value)}\n추가 필요 현금: ${won(needCash)}\n\n신차로 교체하여 차량 노후도를 리셋하시겠습니까?`)) return;
+  if (game.cash < needCash) return alert(`현금이 부족합니다. 추가로 ${won(needCash - game.cash)}이 필요합니다.`);
+  
+  game.cash -= needCash; game.assets.car = targetCar.value; game.car = { ...targetCar }; 
+  game.carHoldingYears = 0; game.carCheckCount = 0; game.happiness = clamp(game.happiness + 5); 
+  closeCarMenuModal(); updateUI();
+}
+
 function carDown() {
   const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if (curLevel <= 0) return alert("차량이 없습니다.");
   const prev = carLevels[curLevel - 1]; const getCash = Math.round(game.assets.car * 0.9) - prev.value;
   if (!confirm(`차량을 다운그레이드하시겠습니까?\n현금 확보액: ${won(getCash)}`)) return;
-  game.cash += getCash; game.assets.car = prev.value; game.car = { ...prev }; game.carHoldingYears = 0; game.carCheckCount = 0; updateUI();
+  game.cash += getCash; game.assets.car = prev.value; game.car = { ...prev }; game.carHoldingYears = 0; game.carCheckCount = 0; 
+  closeCarMenuModal(); updateUI();
 }
 
 function handleHomeReset() {
@@ -399,7 +515,7 @@ async function spinReel(trackId, targetLabel, duration) {
   let targetIndex = items.findIndex((el, idx) => idx >= items.length / 2 && el.getAttribute("data-label") === targetLabel);
   if (targetIndex === -1) targetIndex = Math.floor(items.length / 2);
   track.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.2, 1)`;
-  track.style.transform = `translateY(${-(targetIndex * 76)}px)`;
+  track.style.transform = `translateY(${-(targetIndex * 84)}px)`;
   await new Promise(r => setTimeout(r, duration * 1000));
 }
 
@@ -437,7 +553,6 @@ function setupApplication() {
   if ($("rouletteStartBtn")) $("rouletteStartBtn").onclick = runTripleSlotSpin;
   if ($("rouletteConfirmBtn")) $("rouletteConfirmBtn").onclick = finalizeGameStart;
 
-  if ($("nextYearBtn")) $("nextYearBtn").onclick = () => { if (eventResolved) advanceYear(); };
   if ($("eventNextBtn")) $("eventNextBtn").onclick = advanceYear;
   if ($("lifeRecordBtn")) $("lifeRecordBtn").onclick = () => show("recordScreen");
   if ($("closeRecordBtn")) $("closeRecordBtn").onclick = () => { if (game && game.age >= 60) show("endScreen"); else show("gameScreen"); };
@@ -446,13 +561,15 @@ function setupApplication() {
   if ($("homeBtn")) $("homeBtn").onclick = handleHomeReset;
   if ($("endingNewBtn")) $("endingNewBtn").onclick = () => { game = null; show("startScreen"); };
 
-  if ($("openStockModalBtn")) $("openStockModalBtn").onclick = openStockModal;
   if ($("closeStockModalBtn")) $("closeStockModalBtn").onclick = closeStockModal;
   if ($("sellAllStockBtn")) $("sellAllStockBtn").onclick = sellAllStock;
+  
+  // 모달 안의 버튼들에 기능 연결
   if ($("houseUpBtn")) $("houseUpBtn").onclick = houseUp;
   if ($("houseDownBtn")) $("houseDownBtn").onclick = houseDown;
   if ($("carUpBtn")) $("carUpBtn").onclick = carUp;
   if ($("carDownBtn")) $("carDownBtn").onclick = carDown;
+  if ($("carNewBtn")) $("carNewBtn").onclick = carNew;
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setupApplication);
