@@ -8,7 +8,6 @@
 </head>
 <body>
 <div class="app">
-  <!-- 1. 상단 헤더 영역 -->
   <header class="site-header">
     <div class="header-titles">
       <h1>MY LIFE <span class="header-sub-desc">현실 인생 시뮬레이션</span></h1>
@@ -32,7 +31,6 @@
             <button type="button" id="randomNameBtn" class="btn-sm">🎲 랜덤</button>
           </div>
         </div>
-
         <div class="form-group">
           <label class="input-label" for="playerRegion">출생 지역</label>
           <select id="playerRegion">
@@ -45,7 +43,6 @@
             <option value="제주도">제주도</option>
           </select>
         </div>
-
         <div class="form-group">
           <label class="input-label" for="playerGender">성별</label>
           <select id="playerGender">
@@ -53,7 +50,6 @@
             <option value="여성">여성</option>
           </select>
         </div>
-
         <div class="form-group">
           <span class="input-label">생년월일</span>
           <div class="birth-select-group">
@@ -123,8 +119,7 @@
         <h2><span id="ageText">20</span>세 (<span id="yearText">2026</span>년)</h2>
       </div>
       <div class="year-actions">
-        <button id="lifeRecordBtn" class="btn-sm">📖 연표</button>
-        <button id="nextYearBtn" class="primary btn-sm">다음 분기 →</button>
+        <button id="lifeRecordBtn" class="btn-sm">📖 인생 연표 보기</button>
       </div>
     </div>
 
@@ -173,21 +168,49 @@
         <div id="resultText"></div>
         <div id="resultChanges" class="result-changes"></div>
       </div>
-      <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음으로 →</button>
+      <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음으로 넘어가기 →</button>
     </section>
 
+    <!-- [업데이트] 통합 자산 상세 패널 (거래 버튼 포함) -->
     <section class="panel assets-panel">
       <div class="panel-heading">
-        <div><span class="eyebrow">ASSETS</span><h2>현재 자산 상세</h2></div>
+        <div><span class="eyebrow">ASSETS</span><h2>현재 자산 상세 및 거래</h2></div>
         <span>단위: 원</span>
       </div>
       <div class="asset-grid">
-        <div><span>🏠 주택 (보증금/자가)</span><strong id="houseAsset">0원</strong></div>
-        <div><span>🚗 자동차</span><strong id="carAsset">0원</strong></div>
-        <div><span>📈 보유 주식</span><strong id="stockAsset">0원</strong></div>
-        <div><span>💼 대출 부채</span><strong id="debtAsset" style="color:#dc2626">0원</strong></div>
-        <div><span>💵 현금</span><strong id="cashAsset">0원</strong></div>
-        <div class="highlight"><span>💰 총자산</span><strong id="totalAssetSub">0원</strong></div>
+        <div class="asset-box">
+          <div class="asset-header">
+            <span>🏠 주택 자산</span>
+            <button class="btn-trade" onclick="openHouseMenuModal()">거래</button>
+          </div>
+          <strong id="houseAsset">0원</strong>
+        </div>
+        <div class="asset-box">
+          <div class="asset-header">
+            <span>🚗 자동차 자산</span>
+            <button class="btn-trade" onclick="openCarMenuModal()">거래</button>
+          </div>
+          <strong id="carAsset">0원</strong>
+        </div>
+        <div class="asset-box">
+          <div class="asset-header">
+            <span>📈 보유 주식 평가액</span>
+            <button class="btn-trade" onclick="openStockModal()">거래</button>
+          </div>
+          <strong id="stockAsset">0원</strong>
+        </div>
+        <div class="asset-box">
+          <div class="asset-header"><span>💼 대출 부채</span></div>
+          <strong id="debtAsset" style="color:#dc2626">0원</strong>
+        </div>
+        <div class="asset-box">
+          <div class="asset-header"><span>💵 보유 현금</span></div>
+          <strong id="cashAsset">0원</strong>
+        </div>
+        <div class="asset-box highlight">
+          <div class="asset-header"><span>💰 총자산</span></div>
+          <strong id="totalAssetSub">0원</strong>
+        </div>
       </div>
     </section>
 
@@ -196,30 +219,28 @@
       <div id="careerDetail" class="career-detail"></div>
     </section>
 
-    <section class="panel actions-panel">
-      <div class="panel-heading"><div><span class="eyebrow">DECISIONS</span><h2>자산 관리 & 결정</h2></div></div>
-      <div class="action-buttons">
-        <button id="openStockModalBtn" class="primary">📊 업종별 테마 주식 거래</button>
-        <button id="houseUpBtn">🏠 주택 UP (상위 이사)</button>
-        <button id="houseDownBtn">📉 주택 DOWN (현금 확보)</button>
-        <button id="carUpBtn">🚗 차량 UP (상위 교체)</button>
-        <button id="carDownBtn">📉 차량 DOWN (처분/다운)</button>
-      </div>
-    </section>
-
     <section class="panel history-panel">
       <div class="panel-heading">
-        <div><span class="eyebrow">LIFE HISTORY</span><h2>인생 기록 연표</h2></div>
+        <div><span class="eyebrow">LIFE HISTORY</span><h2>인생 기록 연표 (순자산 기준)</h2></div>
         <span id="historyCount">0회</span>
       </div>
       <div class="chart-wrap"><canvas id="assetChart"></canvas></div>
+      
+      <!-- [업데이트] 탭 버튼 메뉴 추가 -->
+      <div class="history-tabs">
+        <button class="table-tab-btn tab-btn active" data-tab="2" onclick="setTableTab(2)">20대</button>
+        <button class="table-tab-btn tab-btn" data-tab="3" onclick="setTableTab(3)">30대</button>
+        <button class="table-tab-btn tab-btn" data-tab="4" onclick="setTableTab(4)">40대</button>
+        <button class="table-tab-btn tab-btn" data-tab="5" onclick="setTableTab(5)">50대</button>
+      </div>
+
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>나이/분기</th><th>직업 / 직급</th><th>연소득</th><th>생활비 지출</th>
+              <th>나이/분기</th><th>직업 / 직급</th><th>소득</th><th>지출</th>
               <th>주택 자산</th><th>자동차 자산</th><th>주식 자산</th><th>대출 잔액</th>
-              <th>현금</th><th>합계 자산</th><th>순자산</th>
+              <th>현금</th><th>순자산</th>
             </tr>
           </thead>
           <tbody id="historyBody"></tbody>
@@ -228,21 +249,38 @@
     </section>
   </section>
 
-  <!-- 각종 모달창 -->
-  <div id="stockModal" class="modal-overlay hidden">
-    <div class="modal-card">
+  <!-- 각종 거래 모달창들 -->
+
+  <!-- 1. 주택 메뉴 모달 -->
+  <div id="houseMenuModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 380px;">
       <div class="modal-header">
-        <h3>📊 업종별 테마 주식 개별 거래</h3>
-        <button id="closeStockModalBtn" class="btn-close">✕</button>
+        <h3>🏠 주택 거래</h3>
+        <button onclick="closeHouseMenuModal()" class="btn-close">✕</button>
       </div>
-      <p id="currentStockModalInfo" class="modal-desc">현재 보유: 없음</p>
-      <div id="gicsSectorList" class="gics-sector-list"></div>
-      <div class="modal-actions">
-        <button id="sellAllStockBtn" class="danger">보유 주식 전량 매도 (현금화)</button>
+      <div class="modal-actions" style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="houseUpBtn" class="primary">🏠 주택 UP (상위 이사)</button>
+        <button id="houseDownBtn" class="danger">📉 주택 DOWN (현금 확보)</button>
       </div>
     </div>
   </div>
 
+  <!-- 2. 자동차 메뉴 모달 -->
+  <div id="carMenuModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 380px;">
+      <div class="modal-header">
+        <h3>🚗 자동차 거래</h3>
+        <button onclick="closeCarMenuModal()" class="btn-close">✕</button>
+      </div>
+      <div class="modal-actions" style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="carUpBtn" class="primary">🚗 차량 UP (상위 등급)</button>
+        <button id="carNewBtn" class="secondary" style="font-weight: bold; border-color: #94a3b8;">🆕 동일 등급 신차 구입 (노후도 리셋)</button>
+        <button id="carDownBtn" class="danger">📉 차량 DOWN (현금 확보)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 대출/일시불 84 아파트 모달 -->
   <div id="houseModal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 440px;">
       <div class="modal-header">
@@ -261,10 +299,31 @@
     </div>
   </div>
 
+  <!-- 4. 주식 거래 모달 -->
+  <div id="stockModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📊 업종별 테마 주식 개별 거래</h3>
+        <button id="closeStockModalBtn" class="btn-close">✕</button>
+      </div>
+      <p id="currentStockModalInfo" class="modal-desc">현재 보유: 없음</p>
+      <div id="gicsSectorList" class="gics-sector-list"></div>
+      <div class="modal-actions">
+        <button id="sellAllStockBtn" class="danger">보유 주식 전량 매도 (현금화)</button>
+      </div>
+    </div>
+  </div>
+
   <section id="recordScreen" class="hidden">
     <div class="record-header">
       <div><span class="eyebrow">MY LIFE STORY</span><h2>나의 전체 인생 연표</h2></div>
       <button id="closeRecordBtn" class="btn-sm">돌아가기</button>
+    </div>
+    <div class="history-tabs">
+      <button class="record-tab-btn tab-btn active" data-tab="2" onclick="setHistoryTab(2)">20대</button>
+      <button class="record-tab-btn tab-btn" data-tab="3" onclick="setHistoryTab(3)">30대</button>
+      <button class="record-tab-btn tab-btn" data-tab="4" onclick="setHistoryTab(4)">40대</button>
+      <button class="record-tab-btn tab-btn" data-tab="5" onclick="setHistoryTab(5)">50대</button>
     </div>
     <div id="timeline" class="timeline"></div>
   </section>
@@ -283,10 +342,11 @@
     </div>
   </section>
 </div>
+
 <!-- JS 파일 분할 임포트 -->
 <script src="news.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="ui.js"></script>
 </body>
-</html> 
+</html>
