@@ -1,6 +1,6 @@
 /* ==========================================================================
    [MY LIFE] 엔진 로직 및 게임 코어 (engine.js)
-   - 턴 경과(advanceYear), 이벤트 생성(주식 페이즈 및 쿨타임 제어) 등
+   - 턴 경과(advanceYear), 이벤트 생성(주식 페이즈 및 쿨타임 제어), 소득/지출 기록 등
    ========================================================================== */
 
 let game = null;
@@ -58,9 +58,12 @@ function newGame(finalConfig) {
     birthRegion: finalConfig.birthRegion, currentRegion: finalConfig.currentRegion,
     age: finalConfig.startAge, year: startYear, seasonIndex: 0,
     
-    // [업데이트] 주식 전용 페이즈 및 여행 쿨타임 변수 추가
-    isStockPhase: false, // 겨울과 봄 사이 100% 진입하는 주식 결산 페이즈
-    travelCooldown: 0,   // 여행 이벤트 등장 방지 쿨타임 (4 = 1년)
+    isStockPhase: false, 
+    travelCooldown: 0,   
+
+    // [업데이트] 해당 턴(계절)에 실제 발생한 소득/지출만 기록하는 변수
+    turnIncome: 0,
+    turnExpense: 0,
 
     newsSeasonInYear: Math.floor(Math.random() * 4), yearsWithoutTravelEvent: 0, hasTravelOccurredThisYear: false,
     lastDiseaseAnyYear: startYear, lastDiseaseL1L2Year: -999, lastDiseaseL3Year: -999, hasDiseaseL4Occurred: false,
@@ -137,22 +140,29 @@ function liquidateAssetsForCash() {
 function recordHistory() {
   const h = {
     age: game.age, year: game.year, 
-    season: game.isStockPhase ? "증시/결산" : SEASONS[game.seasonIndex], // 주식 페이즈의 경우 계절명 대신 출력
-    job: game.job, career: currentCareerTitle(), income: Math.round(game.annualIncome),
-    livingCost: Math.round(game.lastYearLivingCost || 0), housing: `${game.housing.name} (${game.currentRegion})`,
+    season: game.isStockPhase ? "증시/결산" : SEASONS[game.seasonIndex], 
+    job: game.job, career: currentCareerTitle(), 
+    
+    // [업데이트] 계절별 실제 발생 소득/지출 기록
+    income: game.turnIncome,
+    livingCost: game.turnExpense,
+    
+    housing: `${game.housing.name} (${game.currentRegion})`,
     car: game.car.name, family: game.divorced ? "돌싱" : (game.married ? (game.children ? `배우자·자녀 ${game.children}명` : "기혼") : "미혼"),
     houseAsset: Math.round(game.assets.house), carAsset: Math.round(game.assets.car), stockAsset: Math.round(game.assets.stock),
     debtAsset: Math.round(game.debt), cashAsset: Math.round(game.cash), totalAsset: Math.round(totalAssets()),
     netWorth: Math.round(netWorth()), event: game.lastEvent || ""
   };
   game.history.push(h);
+  
+  // 기록 후 해당 턴의 소득/지출 리셋
+  game.turnIncome = 0;
+  game.turnExpense = 0;
 }
 
-// [업데이트] 여행 이벤트 생성 객체
 function createTravelEventObj(currentSeason) {
-  // 공통 쿨타임 및 여행 상태 처리 클로저
   const setTravelFlags = () => {
-    game.travelCooldown = 8; // 2년(8시즌) 동안 여행 이벤트 발생 차단
+    game.travelCooldown = 8; 
     game.hasTravelOccurredThisYear = true;
   };
 
@@ -171,7 +181,7 @@ function createTravelEventObj(currentSeason) {
             game.health = clamp(game.health - 2);
             if (game.married) game.lastTravelYear = game.year;
           }
-          setTravelFlags(); // 쿨타임 적용
+          setTravelFlags(); 
         }
       },
       {
@@ -184,7 +194,7 @@ function createTravelEventObj(currentSeason) {
             game.health = clamp(game.health - 5);
             if (game.married) game.lastTravelYear = game.year;
           }
-          setTravelFlags(); // 쿨타임 적용
+          setTravelFlags(); 
         }
       },
       { 
@@ -193,7 +203,7 @@ function createTravelEventObj(currentSeason) {
         apply: () => { 
           game.stress = clamp(game.stress - 3); 
           game.happiness = clamp(game.happiness - 5);
-          setTravelFlags(); // 집에서 쉬는 선택도 휴가 이벤트를 겪은 것으로 간주하여 쿨타임 적용
+          setTravelFlags(); 
         } 
       }
     ]
@@ -230,7 +240,7 @@ function checkHealthDiseaseEvent() {
     const cost = 15000000;
     return {
       id: "health_tier4", type: "중증 질환", title: `🏥 ${currentSeason} 중증 질환 진단 및 긴급 대수술`,
-      desc: `정밀 검진 결과 조기 치료가 시급한 중증 질환이 발견되어 입원 후 긴급 수술을 받았습니다. 수술비와 특실 입원비 ${won(cost)}이 지출됩니다. (건강 -35, 스트레스 +35)`,
+      desc: `정밀 검진 결과 조기 치료가 시급한 중증 질환이 발견되어 입원 후 긴급 수술을 받았습니다. 수술비와 특실 입원비 ${won(cost)}이 지출됩니다.`,
       ok: () => true,
       choices: [{
         text: `수술비 지출 및 요양 치료 (${won(cost)})`, result: `대수술을 무사히 마치고 장기간 회복 치료에 들어갔습니다. (건강 -35, 스트레스 +35)`,
@@ -278,20 +288,13 @@ function eventList() {
   const currentSeason = SEASONS[game.seasonIndex];
   const isSecondYearSpringOrLater = game.year > game.startYearRecorded;
 
-  // ========================================================================
-  // [업데이트] 주식 페이즈 무조건 발동
-  // 겨울과 봄 사이에 다른 일반 이벤트가 침범하지 않도록 주식 이벤트만 단독 반환
-  // ========================================================================
   if (game.isStockPhase) {
     const tEvent = THEME_EVENTS[Math.floor(Math.random() * THEME_EVENTS.length)];
     const upSector = THEME_SECTORS.find(s => s.id === tEvent.up);
     const downSector = THEME_SECTORS.find(s => s.id === tEvent.down);
 
-    // 4~10 중 랜덤값 * 5 = 20~50% 메인 상승/하락률 계산
     const currentUpRate = (Math.floor(Math.random() * 7) + 4) * 5;
     const currentDownRate = (Math.floor(Math.random() * 7) + 4) * 5;
-    
-    // 나머지 섹터 소폭 등락 (5, 10, -5, -10, 0) 계산
     const minorOptions = [5, 10, -5, -10, 0];
     const currentOthersRate = minorOptions[Math.floor(Math.random() * minorOptions.length)];
 
@@ -307,7 +310,6 @@ function eventList() {
         game.assets.stock -= loss;
         stockFluctuationLog = `<div style="color:#dc2626; margin-top:8px; font-weight:bold;">📉 [악재 반영] 보유 중인 [${downSector.name}] 테마 주가가 -${currentDownRate}% 급락하여 ${won(loss)}의 손실을 입었습니다.</div>`;
       } else {
-        // 나머지 9개 섹터는 minorOptions의 확률로 변동
         const diff = Math.round(game.assets.stock * (currentOthersRate / 100));
         game.assets.stock += diff;
         const diffText = diff > 0 ? `+${won(diff)} 수익` : (diff < 0 ? `${won(Math.abs(diff))} 손실` : `자산 변동 없음`);
@@ -370,96 +372,53 @@ function eventList() {
 
     return [{
       id: "stock_integrated_event", type: "증시 시황", 
-      title: `📊 ${game.year}년 연말 증시 결산 및 신년 시황`, // 연도 텍스트 표기
-      desc: `<div style="font-weight:bold; font-size:13px; margin-bottom:6px; color:#1e293b;">[시장 주요 현안] ${tEvent.title}</div>` +
-            `<div style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:8px;">${tEvent.desc}</div>` +
-            `<div style="font-size:12px; line-height:1.6;">` +
+      title: `📊 ${game.year}년 연말 증시 결산 및 신년 시황`, 
+      desc: `<div style="font-weight:bold; font-size:14px; margin-bottom:8px; color:#1e293b;">[시장 주요 현안] ${tEvent.title}</div>` +
+            `<div style="font-size:13px; color:#475569; line-height:1.5; margin-bottom:10px;">${tEvent.desc}</div>` +
+            `<div style="font-size:13px; line-height:1.6;">` +
             `• 📈 <b>급등 수혜</b>: ${upSector.name} (+${currentUpRate}% 상승)<br>` +
             `• 📉 <b>급락 악재</b>: ${downSector.name} (-${currentDownRate}% 하락)` +
             `</div>` + stockFluctuationLog,
       ok: () => true, choices: stockChoices
     }];
   }
-  // ========================================================================
-  // 여기서부터는 일반 계절 이벤트들 (isStockPhase가 false일 때만 실행)
-  // ========================================================================
 
   const e = [];
 
+  if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
+    const isPromotable = PROMOTABLE_JOB_KEYS.includes(game.jobKey);
+    if (isPromotable) {
+      const track = careerTracks[game.jobKey];
+      const curRankIdx = game.career.rankIndex || 0;
+      const canPromote = curRankIdx < track.stages.length - 1;
+      const yearsInRank = game.career.yearsInCurrentRank || 0;
+      const targetYears = game.career.promoTargetYears || 4;
 
- // 1. 승진 이벤트 발생 시점 확인
+      if (canPromote && yearsInRank >= targetYears && game.reputation >= 90) {
+        const nextRankIdx = curRankIdx + 1;
+        const nextTitle = track.stages[nextRankIdx];
+        const promoBonus = Math.round((game.annualIncome * (0.02 + Math.random() * 0.03)) / 10000) * 10000;
+        const finalPay = game.annualIncome + promoBonus;
 
-  // 계절이 봄(seasonIndex === 0)이고, 게임 시작 후 최소 1년이 지났는지(isSecondYearSpringOrLater) 확인합니다.
-if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
-  
-  // 현재 직업이 승진이 가능한 직업군(PROMOTABLE_JOB_KEYS)에 속하는지 확인합니다.
-  const isPromotable = PROMOTABLE_JOB_KEYS.includes(game.jobKey);
-  
-  if (isPromotable) {
-    // 해당 직업의 승진 체계(사원->대리->과장 등)와 연봉 테이블 정보를 가져옵니다.
-    const track = careerTracks[game.jobKey];
-    
-    // 현재 내 직급의 인덱스 번호입니다. (0이면 사원, 1이면 대리 등)
-    const curRankIdx = game.career.rankIndex || 0;
-    
-    // 최고 직급인지 확인합니다. (배열의 마지막 단계면 더 이상 승진할 곳이 없어 false가 됩니다.)
-    const canPromote = curRankIdx < track.stages.length - 1;
-    
-    // 현재 직급에서 몇 년 동안 일했는지(근속 연수)를 나타냅니다.
-    const yearsInRank = game.career.yearsInCurrentRank || 0;
-    
-    // 다음 승진을 위해 채워야 하는 목표 근속 연수입니다. (기본적으로 4~8년 사이로 랜덤 배정되어 있습니다.)
-    const targetYears = game.career.promoTargetYears || 4;
-
-    // 2. 승진 심사 조건 통과 여부 확인
-    // 조건: 승진 가능 직급이 남아있고 && 목표 근속 연수를 채웠고 && 평판이 90점 이상이어야 함
-    if (canPromote && yearsInRank >= targetYears && game.reputation >= 90) {
-      
-      // 다음 직급의 인덱스와 직급명을 가져옵니다.
-      const nextRankIdx = curRankIdx + 1;
-      const nextTitle = track.stages[nextRankIdx];
-      
-      // 승진 보너스 연봉 계산: 현재 연봉의 10% ~ 15% 사이를 랜덤으로 올립니다.
-      // (Math.random() * 0.05는 0~5% 이므로 0.10을 더해 10~15%가 됩니다.)
-      // 10000으로 나누고 다시 곱하는 것은 만원 단위로 딱 떨어지게 반올림(Math.round)하기 위함입니다.
-      const promoBonus = Math.round((game.annualIncome * (0.02 + Math.random() * 0.03)) / 10000) * 10000;
-      
-      // 인상된 최종 다음 해 연봉입니다.
-      const finalPay = game.annualIncome + promoBonus;
-
-      // 3. 승진 이벤트 창 출력 세팅
-      e.push({
-        id: "general_promotion_event", type: "정기 승진", title: `🎖️ [경사] 정기 승진 심사 통과: [${nextTitle}] 발령!`,
-        desc: `현재 직급에서 ${yearsInRank}년간 성실히 근무하며 뛰어난 평판(${game.reputation}점)을 증명했습니다! [${nextTitle}]으로 공식 승진하며 연소득이 10~15% 추가 인상됩니다.`,
-        ok: () => true,
-        choices: [{
-          text: `승진 발령 수락 및 추가 인상분 수령 (${won(promoBonus)})`, 
-          result: `[${nextTitle}]으로 승진 완료! 새 연소득 ${won(finalPay)}이 확정되었습니다! (평판 +5, 행복 +20)`,
-          
-          // 4. 유저가 '수락' 버튼을 눌렀을 때 실제로 능력치에 반영되는 효과들
-          apply: function() {
-            game.career.rankIndex = nextRankIdx; // 직급 단계 상승
-            game.career.title = nextTitle;       // 새 직급 타이틀(이름) 적용
-            game.career.yearsInCurrentRank = 0;  // 새 직급을 달았으니 현재 직급 근속 연수는 다시 0으로 초기화
-            
-            // 다음 승진까지 필요한 목표 기간을 4~8년 사이로 새롭게 랜덤 설정합니다.
-            game.career.promoTargetYears = Math.floor(Math.random() * 5) + 4; 
-            
-            game.annualIncome = finalPay;        // 내 연봉을 인상된 연봉으로 교체
-            game.cumulativeIncome += promoBonus; // 생애 총 누적 소득 통계에 이번 보너스 추가
-            game.cash += promoBonus;             // 당장 쓸 수 있는 보유 현금에 보너스 입금
-            
-            // 평판 5점, 행복도 20점 상승 (clamp 함수를 통해 최대치 100을 넘지 않게 조절)
-            game.reputation = clamp(game.reputation + 5); 
-            game.happiness = clamp(game.happiness + 20);
-          }
-        }]
-      });
+        e.push({
+          id: "general_promotion_event", type: "정기 승진", title: `🎖️ [경사] 정기 승진 심사 통과: [${nextTitle}] 발령!`,
+          desc: `현재 직급에서 ${yearsInRank}년간 성실히 근무하며 뛰어난 평판(${game.reputation}점)을 증명했습니다! [${nextTitle}]으로 공식 승진하며 연소득이 추가 인상됩니다.`,
+          ok: () => true,
+          choices: [{
+            text: `승진 발령 수락 및 추가 인상분 수령 (${won(promoBonus)})`, 
+            result: `[${nextTitle}]으로 승진 완료! 새 연소득 ${won(finalPay)}이 확정되었습니다! (평판 +5, 행복 +20)`,
+            apply: function() {
+              game.career.rankIndex = nextRankIdx; game.career.title = nextTitle; game.career.yearsInCurrentRank = 0;
+              game.career.promoTargetYears = Math.floor(Math.random() * 5) + 4; game.annualIncome = finalPay;
+              game.cumulativeIncome += promoBonus; game.cash += promoBonus;
+              game.reputation = clamp(game.reputation + 5); game.happiness = clamp(game.happiness + 20);
+            }
+          }]
+        });
+      }
     }
   }
-}
 
-  // 2. 치킨집 매장 확장
   if (game.jobKey === "entrepreneur") {
     if (game.chickenStoreCount === 1 && !game.hasOpenedStore2 && game.chickenStore1Years >= 5 && game.reputation >= 80 && game.cash >= 50000000) {
       e.push({
@@ -485,7 +444,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     }
   }
 
-  // 3. 직장 뉴스 정기 발생
   if (typeof getRandomJobNewsByProbability === "function" && game.jobKey && game.seasonIndex === game.newsSeasonInYear) {
     const jobNews = getRandomJobNewsByProbability(game.jobKey);
     if (jobNews) {
@@ -496,7 +454,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     }
   }
 
-  // 4. [업데이트] 여행 및 질병 이벤트 체크 (1년 쿨타임 반영)
   if (game.travelCooldown === 0) {
     if (game.yearsWithoutTravelEvent >= 4 && game.seasonIndex === 1) {
       e.push(createTravelEventObj(currentSeason));
@@ -518,7 +475,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     }
   }
 
-  // 자동차 점검 및 폐차
   if (game.assets.car > 0) {
     if (game.carHoldingYears >= 15 || game.carCheckCount >= 2) {
       e.push({
@@ -539,7 +495,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     }
   }
 
-  // 가정 불화 (이혼)
   if (game.married && !game.divorced) {
     const yearsWithoutTravel = game.year - (game.lastTravelYear || game.marriageYear || game.year);
     const isBroke = game.annualIncome < 25000000 || netWorth() < 0;
@@ -561,7 +516,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     }
   }
 
-  // 봄 연봉 협상
   if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     const canNeg = jobs[game.jobKey] && jobs[game.jobKey].canNegotiate;
     const choices = [{ text: `통보된 연소득 확정 수락 (${won(game.annualIncome)})`, result: `올해 연소득 ${won(game.annualIncome)} 계약이 정상 완료되었습니다.`, apply: function() {} }];
@@ -585,8 +539,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     e.push({ id: "spring_salary_event", type: "연소득 통보", title: `🌸 봄 정기 연소득 통보 및 계약`, desc: `올해 책정된 연소득 ${won(game.annualIncome)}이 확정되었습니다.`, ok: () => true, choices });
   }
 
-
-// 보너스 (치과의사 직군 성과급 이벤트 발생 제외 처리)
   if (game.seasonIndex === 3 && !["celebrity", "entrepreneur", "unemployed", "doctor"].includes(game.jobKey)) {
     e.push({
       id: "job_bonus", type: "보너스", title: `❄️ 겨울 연말 특별 성과급`, desc: `한 해 동안의 근속 및 업무 실적을 치하하는 상여금입니다.`, ok: () => true,
@@ -616,7 +568,6 @@ if (game.seasonIndex === 0 && isSecondYearSpringOrLater) {
     });
   }
 
-  // 결혼 결심 등 (35~45세)
   if (!game.married && !game.divorced && !game.declaredSolo && game.gender === "남성" && game.year >= (game.marriageBlockedUntilYear || 0)) {
     const hasNoCar = !game.car || game.car.level === 0 || game.assets.car <= 0;
     const isBelowStudio = !game.housing || (game.housing.level !== undefined ? game.housing.level < 2 : false);
@@ -670,14 +621,24 @@ function generateEvent() {
 function resolveEvent(i) {
   if (eventResolved) return;
   const c = currentEvent.choices[i];
-  const before = { cash: game.cash, stock: game.assets.stock, rep: game.reputation };
+  
+  const beforeCash = game.cash;
+  const beforeStock = game.assets.stock;
+  const beforeRep = game.reputation;
+  
   c.apply();
+  
+  // [업데이트] 이벤트로 인한 직접적인 현금 증감량을 해당 시즌의 소득/지출에 기록
+  const cashDiff = game.cash - beforeCash;
+  if (cashDiff > 0) game.turnIncome += cashDiff;
+  else if (cashDiff < 0) game.turnExpense += Math.abs(cashDiff);
+
   game.health = clamp(game.health); game.happiness = clamp(game.happiness); game.stress = clamp(game.stress); game.reputation = clamp(game.reputation);
   recalculateHousingAndLifestyle();
   eventResolved = false;
 
   $("resultText").textContent = c.result || "처리가 완료되었습니다.";
-  const changes = [["현금", game.cash - before.cash], ["주식", game.assets.stock - before.stock], ["평판", game.reputation - before.rep]].filter(x => x[1] !== 0).map(x => `<span class="change">${x[0]} ${typeof x[1] === "number" && Math.abs(x[1]) > 1000 ? won(x[1]) : (x[1] > 0 ? "+" : "") + x[1]}</span>`).join("");
+  const changes = [["현금", game.cash - beforeCash], ["주식", game.assets.stock - beforeStock], ["평판", game.reputation - beforeRep]].filter(x => x[1] !== 0).map(x => `<span class="change">${x[0]} ${typeof x[1] === "number" && Math.abs(x[1]) > 1000 ? won(x[1]) : (x[1] > 0 ? "+" : "") + x[1]}</span>`).join("");
   $("resultChanges").innerHTML = changes || '<span class="change">변동 없음</span>';
   $("resultBox").classList.remove("hidden");
   [...document.querySelectorAll(".choice")].forEach(b => b.disabled = true);
@@ -690,31 +651,21 @@ function advanceYear() {
   if (!eventResolved) return;
   eventResolved = false;
 
-  // ========================================================================
-  // [업데이트] 주식 페이즈 종료 후의 흐름 제어
-  // 주식 페이즈였다면 계절(봄)을 진행시키지 않고 바로 봄 이벤트로 넘깁니다.
-  // ========================================================================
   if (game.isStockPhase) {
     game.isStockPhase = false;
-    recordHistory(); // 주식 결과가 반영된 봄 상태 기록
-    generateEvent(); // 봄 이벤트 발동
+    recordHistory(); 
+    generateEvent(); 
     updateUI();
     return;
   }
 
-  // 일반 계절이 넘어갈 때 여행 쿨타임 감소 (4시즌 = 1년)
   if (game.travelCooldown > 0) {
     game.travelCooldown--;
   }
 
-
-  if (game.seasonIndex === 3) { // 겨울(3) 종료 시 발생하는 연말 결산 및 해 넘김 로직
-    // ========================================================================
-    // 1. 생활비 및 주거비 정산
-    // ========================================================================
+  if (game.seasonIndex === 3) { 
     let baseLivingCost = 0;
     
-    // 게임 시작 첫해의 겨울일 경우 정해진 초기 생활비 차감
     if (game.isFirstYearWinter) {
       baseLivingCost = game.firstYearLivingCostFixed || 4000000;
       game.isFirstYearWinter = false;
@@ -723,39 +674,35 @@ function advanceYear() {
         alert(`[첫해 겨울 생활비 지출]\n${won(baseLivingCost)} 차감.\n${liquidLog}`); 
       }
     } else {
-      // 일반적인 해의 생활비: 현재 연봉의 40% ~ 50% 사이를 랜덤하게 지출
       if (game.annualIncome > 0) baseLivingCost = Math.round((game.annualIncome * (0.40 + Math.random() * 0.10)) / 10000) * 10000;
     }
     
-    // 결혼한 상태라면 기본 생활비에 1.5배의 가중치를 곱해 지출 증가
     if (game.married && game.marriageYear && game.year > game.marriageYear) baseLivingCost = Math.round(baseLivingCost * 1.5);
     
     let housingAnnualCost = 0; let housingCostNote = "";
     
-    // 월세 거주 시: 1년 치(12개월) 월세를 계산하여 주거비에 추가
     if (game.housing.type === "monthly" && game.housing.rent > 0) { 
       housingAnnualCost = game.housing.rent * 12; 
       housingCostNote = `월세 연 ${won(housingAnnualCost)}`; 
     }
-    // 대출이 있을 시: 대출금의 4%를 연 이자로 계산하여 주거비에 추가
     if (game.debt > 0) { 
       const loanInterest = Math.round(game.debt * 0.04); 
       housingAnnualCost += loanInterest; 
       housingCostNote += `${housingCostNote ? ' + ' : ''}대출이자 ${won(loanInterest)}`; 
     }
     
-    // 생활비와 주거비를 합산하여 보유 현금에서 차감
     const totalAnnualLivingCost = baseLivingCost + housingAnnualCost;
+    
+    // [업데이트] 주거비/생활비를 해당 시즌 지출로 기록
     game.cash -= totalAnnualLivingCost; 
+    game.turnExpense += totalAnnualLivingCost;
     game.lastYearLivingCost = totalAnnualLivingCost;
     
-    // 지출 후 현금이 마이너스가 되면 자산(주식, 집)을 강제 매각하여 메꿈
     if (game.cash < 0) { 
       const liquidLog = liquidateAssetsForCash(); 
       alert(`현금이 부족하여 자산이 강제 처분되었습니다.\n${liquidLog}`); 
     }
 
-    // 전세 거주 시 2년마다 보증금 5% 인상 로직
     if (game.housing.type === "jeonse") {
       game.housingYearsInCurrent = (game.housingYearsInCurrent || 0) + 1;
       if (game.housingYearsInCurrent >= 2) {
@@ -763,7 +710,10 @@ function advanceYear() {
         const increaseDeposit = Math.round(game.assets.house * 0.05); 
         game.assets.house += increaseDeposit; 
         game.housing.deposit += increaseDeposit; 
+        
+        // [업데이트] 전세 인상금액도 지출로 기록
         game.cash -= increaseDeposit;
+        game.turnExpense += increaseDeposit;
         
         let jeonseLog = ""; 
         if (game.cash < 0) jeonseLog = liquidateAssetsForCash();
@@ -773,29 +723,21 @@ function advanceYear() {
       game.housingYearsInCurrent = 0; 
     }
 
-    // 60세 도달 시 게임 종료
     if (game.age >= 60) { endGame(); return; }
     
-    // ========================================================================
-    // 2. 연도 증가 및 페이즈 전환
-    // ========================================================================
     game.age++; 
     game.year++; 
-    game.seasonIndex = 0; // 다음 계절을 봄(0)으로 세팅
+    game.seasonIndex = 0; 
     
-    // 봄 이벤트가 시작되기 전, 겨울과 봄 사이 무조건 진입하는 '주식 페이즈' 활성화
     game.isStockPhase = true;
 
-    // 자영업자(치킨집) 매장별 운영 연수 1년 증가
     if (game.jobKey === "entrepreneur") { 
       game.chickenStore1Years++; 
       if (game.hasOpenedStore2) game.chickenStore2Years++; 
       if (game.hasOpenedStore3) game.chickenStore3Years++; 
     }
-    // 직장인 근속 연수 1년 증가
     if (game.career && game.career.yearsInCurrentRank !== undefined) game.career.yearsInCurrentRank++;
     
-    // 여행 쿨타임 및 뉴스 시즌 갱신
     if (game.hasTravelOccurredThisYear) {
       game.yearsWithoutTravelEvent = 0;
     } else {
@@ -804,8 +746,6 @@ function advanceYear() {
     game.hasTravelOccurredThisYear = false;
     game.newsSeasonInYear = Math.floor(Math.random() * 4);
 
-
-    // 자동차 노후화 처리 (차가 없으면 매년 스트레스 증가 및 체력 감소 페널티)
     if (game.assets.car > 0) game.carHoldingYears++;
     else {
       const oldStress = game.stress; 
@@ -815,71 +755,45 @@ function advanceYear() {
       }
     }
     
-    // 매년 자연적으로 평판 1~5점 상승
     game.reputation = clamp(game.reputation + Math.floor(Math.random() * 5) + 1);
 
-    // ========================================================================
-    // 3. 직업군별 연소득(연봉) 상승 로직 (백수 제외)
-    // 수식을 수정하여 상승 폭(%)을 조절할 수 있습니다.
-    // ========================================================================
     if (game.jobKey !== "unemployed") {
-      
-      // [1. 공장 근로자] 50% 확률로 연봉 3% 고정 인상, 나머지 50%는 동결
       if (game.jobKey === "factory_worker") { 
         if (Math.random() >= 0.5) game.annualIncome = Math.round((game.annualIncome * 1.03) / 10000) * 10000; 
       }
-      
-      // [2. 대기업 / 개발자 / 연구원 / 대기업 생산직] 매년 3% ~ 6% 상승
-      // 계산식: 1 + 0.03(기본 3%) + Math.random() * 0.03(최대 3% 추가)
       else if (["developer", "large_corp", "researcher", "large_factory"].includes(game.jobKey)) {
         game.annualIncome = Math.round((game.annualIncome * (1 + 0.03 + Math.random() * 0.03)) / 10000) * 10000;
       }
-      
-      // [3. 공무원 / 교사 / 간호사 / 경찰 / 소방 / 중소기업] 매년 1% ~ 4% 상승
-      // 계산식: 1 + 0.01(기본 1%) + Math.random() * 0.03(최대 3% 추가)
       else if (["civil", "teacher", "nurse", "police", "firefighter", "sme_corp"].includes(game.jobKey)) { 
         game.annualIncome = Math.round((game.annualIncome * (1 + 0.01 + Math.random() * 0.03)) / 10000) * 10000; 
-        if (jobs[game.jobKey].isGov) game.career.govStep++; // 공무원은 호봉 1 증가
+        if (jobs[game.jobKey].isGov) game.career.govStep++;
       }
-      
-      // [4. 자영업자] 별도 퍼센트 인상 없이, 현재 매장 규모(직급)에 따른 보장 최소 수익으로 고정
       else if (game.jobKey === "entrepreneur") { 
         if (game.annualIncome < getChickenBasePay()) game.annualIncome = getChickenBasePay(); 
       }
-      
-      // [5. 연예인] 매년 -20% 폭락 ~ +40% 폭등 사이로 가장 불안정하게 변동
-      // 계산식: 1 - 0.20(기본 -20%) + Math.random() * 0.60(최대 +60% 추가)
       else if (game.jobKey === "celebrity") { 
         game.annualIncome = Math.max(20000000, Math.round((game.annualIncome * (1 - 0.20 + Math.random() * 0.60)) / 10000) * 10000); 
         if (game.reputation >= 90) game.career.title = "탑스타"; 
       }
-      
-      // [6. 변호사 )] 매년 5% ~ 10% 상승 (최고 상승 폭)
-      // 계산식: 1 + 0.05(기본 5%) + Math.random() * 0.05(최대 5% 추가)
       else if (game.jobKey === "professional") {
         game.annualIncome = Math.round((game.annualIncome * (1 + 0.05 + Math.random() * 0.05)) / 10000) * 10000;
       }
-      
-      // [7. 그 외 기본값] 매년 3% ~ 7% 상승
-      // 계산식: 1.03(기본 3%) + Math.random() * 0.04(최대 4% 추가)
       else {
         game.annualIncome = Math.round((game.annualIncome * (1.02 + Math.random() * 0.03)) / 10000) * 10000;
       }
       
-      // 최종 결정된 올해 연봉을 보유 현금과 생애 누적 소득에 합산
+      // [업데이트] 당해 연봉을 해당 시즌(겨울/증시)의 소득으로 기록
       game.cash += game.annualIncome; 
+      game.turnIncome += game.annualIncome;
       game.cumulativeIncome += game.annualIncome;
     }
   } else { 
-    // 겨울(3)이 아닐 경우 단순히 계절(seasonIndex)만 다음으로 넘김
     game.seasonIndex++; 
   }
 
-  // 화면 업데이트 및 다음 이벤트 발동
   recalculateHousingAndLifestyle(); 
-  recordHistory();
+  recordHistory(); // 시즌 결산 및 소득/지출 기록 저장 후 리셋
   if (game.age >= 60 && game.seasonIndex === 3) { endGame(); return; }
   generateEvent(); 
   updateUI();
-
 }
