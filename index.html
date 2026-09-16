@@ -163,15 +163,15 @@
       <p id="eventDescription"></p>
       <div id="choices" class="choices"></div>
 
+      <!-- [업데이트] 버튼을 삭제하고 박스 자체를 클릭 가능하게 변경 -->
       <div id="resultBox" class="result-box hidden">
         <div class="result-title">✓ 사건 결과</div>
         <div id="resultText"></div>
         <div id="resultChanges" class="result-changes"></div>
       </div>
-      <button id="eventNextBtn" class="primary full" disabled>결과를 확인한 뒤 다음으로 넘어가기 →</button>
     </section>
 
-    <!-- [업데이트] 통합 자산 상세 패널 (거래 버튼 포함) -->
+    <!-- [업데이트] 대출 항목에도 거래 버튼 추가 및 오른쪽 고정 배치를 위해 구조 수정 -->
     <section class="panel assets-panel">
       <div class="panel-heading">
         <div><span class="eyebrow">ASSETS</span><h2>현재 자산 상세 및 거래</h2></div>
@@ -179,29 +179,25 @@
       </div>
       <div class="asset-grid">
         <div class="asset-box">
-          <div class="asset-header">
-            <span>🏠 주택 자산</span>
-            <button class="btn-trade" onclick="openHouseMenuModal()">거래</button>
-          </div>
+          <div class="asset-header"><span>🏠 주택 자산</span></div>
           <strong id="houseAsset">0원</strong>
+          <button class="btn-trade" onclick="openHouseMenuModal()">거래</button>
         </div>
         <div class="asset-box">
-          <div class="asset-header">
-            <span>🚗 자동차 자산</span>
-            <button class="btn-trade" onclick="openCarMenuModal()">거래</button>
-          </div>
+          <div class="asset-header"><span>🚗 자동차 자산</span></div>
           <strong id="carAsset">0원</strong>
+          <button class="btn-trade" onclick="openCarMenuModal()">거래</button>
         </div>
         <div class="asset-box">
-          <div class="asset-header">
-            <span>📈 보유 주식 평가액</span>
-            <button class="btn-trade" onclick="openStockModal()">거래</button>
-          </div>
+          <div class="asset-header"><span>📈 보유 주식 평가액</span></div>
           <strong id="stockAsset">0원</strong>
+          <button class="btn-trade" onclick="openStockModal()">거래</button>
         </div>
+        <!-- [업데이트] 대출 상환 버튼 추가 -->
         <div class="asset-box">
           <div class="asset-header"><span>💼 대출 부채</span></div>
           <strong id="debtAsset" style="color:#dc2626">0원</strong>
+          <button class="btn-trade" onclick="repayLoan()">상환</button>
         </div>
         <div class="asset-box">
           <div class="asset-header"><span>💵 보유 현금</span></div>
@@ -226,7 +222,6 @@
       </div>
       <div class="chart-wrap"><canvas id="assetChart"></canvas></div>
       
-      <!-- [업데이트] 탭 버튼 메뉴 추가 -->
       <div class="history-tabs">
         <button class="table-tab-btn tab-btn active" data-tab="2" onclick="setTableTab(2)">20대</button>
         <button class="table-tab-btn tab-btn" data-tab="3" onclick="setTableTab(3)">30대</button>
@@ -343,7 +338,6 @@
   </section>
 </div>
 
-<!-- JS 파일 분할 임포트 -->
 <script src="news.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
