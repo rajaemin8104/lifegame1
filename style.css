@@ -1,93 +1,67 @@
 /* ==========================================================================
    [기본 및 글로벌 변수 설정]
    ========================================================================== */
-* { box-sizing: border-box; } /* 요소의 너비와 높이를 테두리까지 포함하여 계산 */
+* { box-sizing: border-box; }
 
-
-/* 테마 컬러, 배경색, 그림자 효과 등을 재사용하기 위해 CSS 변수로 선언 */
 :root {
-  --bg: #f9f8f4;          /* 전체 배경색 (따뜻한 아이보리 톤) */
-  --panel: #ffffff;       /* 각 패널(상자)의 배경색 (흰색) */
-  --text: #2d2d2d;        /* 기본 글자색 (진한 회색) */
-  --muted: #6b7280;       /* 부가 설명 등에 쓰이는 옅은 회색 */
-  --line: #e5e7eb;        /* 구분선 및 테두리 색상 */
-  --blue: #2563eb;        /* 메인 포인트 컬러 (파란색) */
-  --blue2: #eff6ff;       /* 강조 배경용 연한 파란색 */
-  --green: #16a34a;       /* 수익 등 긍정적 수치용 초록색 */
-  --red: #dc2626;         /* 지출/손실 등 부정적 수치용 빨간색 */
-  --shadow: 0 6px 20px rgba(15,23,42,.05); /* 공통 그림자 효과 */
+  --bg: #f9f8f4;          
+  --panel: #ffffff;       
+  --text: #2d2d2d;        
+  --muted: #6b7280;       
+  --line: #e5e7eb;        
+  --blue: #2563eb;        
+  --blue2: #eff6ff;       
+  --green: #16a34a;       
+  --red: #dc2626;         
+  --shadow: 0 6px 20px rgba(15,23,42,.05); 
 }
 
-/* 전체 문서 기본 스타일: 글꼴, 배경색, 글자 크기 지정 */
 body { margin: 0; background: var(--bg); color: var(--text); font-family: Arial, "Noto Sans KR", sans-serif; font-size: 14px; }
-
-/* 게임의 메인 컨테이너 (최대 너비를 제한하고 중앙 정렬) */
 .app { max-width: 1100px; margin: auto; padding: 14px; }
 
 
 /* ==========================================================================
    [공통 버튼 스타일]
    ========================================================================== */
-/* 기본 버튼의 테두리, 배경, 모서리 둥글기 설정 */
 button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; color: var(--text); font-family: inherit; }
-button:hover:not(:disabled) { background: #f8fafc; } /* 마우스 오버 시 살짝 어두워짐 */
-button:disabled { opacity: .5; cursor: not-allowed; } /* 비활성화 시 반투명하게 처리 */
+button:hover:not(:disabled) { background: #f8fafc; } 
+button:disabled { opacity: .5; cursor: not-allowed; } 
 
-/* 파란색 메인 버튼 (진행, 긍정적 선택지 등) */
 .primary { background: var(--blue); color: #fff; border-color: var(--blue); }
 .primary:hover:not(:disabled) { background: #1d4ed8; }
-
-/* 빨간색 경고/위험 버튼 (매도, 자산 다운그레이드 등) */
 .danger { background: var(--red); color: #fff; border-color: var(--red); }
-
-/* 연한 회색의 보조 버튼 */
 .secondary { background: #f8fafc; }
-
-/* 가로 100% 꽉 차는 큰 버튼 (룰렛 시작, 다음 분기 진행 등) */
 .full { width: 100%; margin-top: 10px; padding: 14px; font-size: 13px; font-weight: bold; }
-
-/* 특정 UI를 화면에서 완전히 숨길 때 사용하는 유틸리티 클래스 */
 .hidden { display: none !important; }
 
 
 /* ==========================================================================
-   [상단 헤더 영역 (타이틀 & 처음으로 버튼)]
+   [상단 헤더 영역]
    ========================================================================== */
 .site-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 4px 2px; border-bottom: 1px solid #d1d5db; }
 .site-header h1 { margin: 0; font-size: 18px; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
-.header-sub-desc { font-size: 12px; color: var(--muted); font-weight: normal; } /* 메인 타이틀 옆 '현실 인생 시뮬레이션' 글씨 */
+.header-sub-desc { font-size: 12px; color: var(--muted); font-weight: normal; } 
 
-/* '처음으로' 리셋 버튼 스타일 */
 .btn-home { background: #f1f5f9; border: 1px solid #cbd5e1; font-weight: bold; color: #1e293b; padding: 5px 12px; font-size: 12px; border-radius: 6px; }
 .btn-home:hover { background: #e2e8f0; }
-
-/* 각 섹션의 카테고리(영문)를 작게 표시하는 눈썹 글씨용 클래스 */
 .eyebrow { font-size: 11px; letter-spacing: 1px; color: var(--blue); font-weight: 800; }
 
 
 /* ==========================================================================
-   [시작 화면 (캐릭터 생성) & 엔딩 화면]
+   [시작 화면 & 엔딩 화면]
    ========================================================================== */
-/* 캐릭터 생성창과 엔딩 결과창을 감싸는 큰 카드 보드 */
 .start-card, .ending-card { max-width: 760px; margin: 16px auto; background: var(--panel); padding: 24px; border-radius: 16px; box-shadow: var(--shadow); }
 .profile-subtitle-small { font-size: 13px; color: var(--muted); margin: 4px 0 14px; line-height: 1.5; }
 
-/* 입력 폼 라인 간격 및 라벨 텍스트 폰트 설정 */
 .form-group { margin-bottom: 12px; }
 .input-label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 13px; }
 
-/* 인풋 박스와 셀렉트(드롭다운) 박스 디자인 */
 input, select { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 14px; background: #fdfdfc; }
-
-/* 이름 입력 칸과 '랜덤' 버튼을 한 줄로 배치 */
 .name-input-group { display: flex; gap: 6px; }
 .name-input-group input { flex: 1; }
 .name-input-group button { padding: 0 14px; font-weight: bold; white-space: nowrap; }
-
-/* 생년, 월, 일 셀렉트 박스들을 한 줄로 배치 */
 .birth-select-group { display: flex; gap: 6px; }
 
-/* 입력한 정보가 실시간으로 나타나는 미리보기 박스 영역 */
 .profile-preview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
 .profile-preview > div { padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc; }
 .profile-preview span { font-size: 10px; color: #6b7280; display: block; margin-bottom: 2px; }
@@ -99,25 +73,16 @@ input, select { display: block; width: 100%; border: 1px solid var(--line); bord
    ========================================================================== */
 #rouletteScreen { display: flex; justify-content: center; align-items: center; min-height: 75vh; width: 100%; }
 .roulette-card.triple-card { width: 100%; max-width: 620px; padding: 24px; border-radius: 16px; background: #fff; box-shadow: var(--shadow); text-align: center; }
-
-/* 3개의 룰렛 통을 가로로 배치 */
 .triple-roulette-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 14px; }
-
-/* 개별 룰렛 통(프레임) 디자인 */
 .reel-box { position: relative; background: #f8fafc; border: 2px solid #0f172a; border-radius: 15px; padding: 8px 6px 10px; display: flex; flex-direction: column; align-items: center; }
 .reel-header { font-size: 13px; font-weight: bold; color: #1e293b; margin-bottom: 6px; }
-.reel-pointer { font-size: 15px; color: #2563eb; margin-bottom: -6px; z-index: 5; } /* 현재 당첨 위치를 가리키는 화살표 */
-
-/* 글씨가 돌아가는 창문 영역 (이 영역 밖으로 나가는 글씨는 잘림 처리) */
+.reel-pointer { font-size: 15px; color: #2563eb; margin-bottom: -6px; z-index: 5; } 
 .reel-window { overflow: hidden; position: relative; width: 100%; height: 64px; border-radius: 8px; background: #fff; border: 1px solid #cbd5e1; }
-/* 빙글빙글 돌아갈 긴 띠(트랙) */
 .reel-track { display: flex; flex-direction: column; will-change: transform; }
-/* 트랙 내부에 들어있는 각각의 글씨 아이템들 */
 .reel-item { height: 84px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; font-weight: bold; font-size: 14px; border-bottom: 1px dashed #e2e8f0; }
 .reel-item small { display: block; margin-top: 4px; font-size: 11px; color: #64748b; font-weight: normal; }
 .reel-status { margin-top: 6px; font-size: 11px; font-weight: bold; color: #64748b; }
 
-/* 룰렛이 멈춘 후 최종 배정 결과를 보여주는 박스 */
 .roulette-result.compact-result { padding: 14px; margin-top: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
 .roulette-result.compact-result h1 { font-size: 20px; margin: 6px 0; }
 .roulette-result.compact-result p { font-size: 13px; margin: 4px 0; }
@@ -126,49 +91,35 @@ input, select { display: block; width: 100%; border: 1px solid var(--line); bord
 
 
 /* ==========================================================================
-   [게임 메인 화면: 나이/연도 헤더바 & 6구역 대시보드]
+   [게임 메인 화면]
    ========================================================================== */
-/* 나이 및 현재 계절이 표시되는 상단 헤더바 */
 .year-header.compact { background: var(--panel); border-radius: 12px; padding: 10px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
 .year-header.compact h2 { font-size: 18px; margin: 0; color: #111827; }
 .year-actions { display: flex; gap: 8px; }
 .btn-sm { padding: 6px 10px; font-size: 12px; font-weight: bold; }
 
-/* 6개의 기본 능력치를 3열 2행으로 보여주는 그리드 레이아웃 */
 .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-
-/* 대시보드 내부의 개별 스탯 카드 */
 .stat-card { background: var(--blue2); padding: 10px 12px; border-radius: 10px; box-shadow: var(--shadow); border: 1px solid var(--line); }
 .stat-card span { display: block; color: var(--muted); font-size: 11px; }
 .stat-card strong { display: block; font-size: 13px; margin: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat-card small { color: var(--muted); font-size: 11px; display: block; }
-.highlight-card { background: var(--blue2); border-color: #bfdbfe; } /* 총자산 부분을 파랗게 강조 */
-
-/* 건강, 행복, 스트레스, 평판 수치를 가로로 나열하는 이모지 영역 */
+.highlight-card { background: var(--blue2); border-color: #bfdbfe; } 
 .mini-status { display: flex; gap: 6px; margin-top: 4px; font-size: 12px; flex-wrap: wrap; }
 
-
-/* ==========================================================================
-   [게임 메인 화면: 공통 패널 (이벤트, 자산, 커리어 구역)]
-   ========================================================================== */
-/* 각 콘텐츠 구역을 감싸는 박스 */
 .panel { background: var(--panel); padding: 14px 16px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 12px; border: 1px solid #f3f4f6; }
 .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
 .panel h2 { margin: 0; font-size: 13px; }
-
-/* 이벤트 타입(인생, 직장, 보너스 등)을 표시하는 상단 라벨 배지 */
 .badge { background: #eef2ff; color: #4338ca; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
 
-/* 이벤트 내용 텍스트 */
 .event-panel > p { line-height: 1.5; color: #4b5563; margin: 8px 0; font-size: 13px; }
-
-/* 이벤트 선택지 버튼들 */
 .choices { display: grid; gap: 8px; margin: 12px 0; }
 .choice { padding: 6px; text-align: left; font-size: 12px; }
 
-/* 이벤트 선택 후 출력되는 결과창과 변화 수치 이펙트 박스 */
-.result-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin: 12px 0; color: #166534; font-size: 12px; }
-.result-title { font-weight: bold; margin-bottom: 4px; }
+/* [업데이트] 결과창 클릭 유도 디자인 추가 */
+.result-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 12px 0; color: #166534; font-size: 12px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.result-box:hover { background: #dcfce7; transform: translateY(-2px); }
+.result-title { font-weight: bold; margin-bottom: 4px; font-size: 14px; }
+.result-title::after { content: " (클릭하여 다음으로 이동 →)"; font-size: 11px; color: #15803d; font-weight: normal; margin-left: 6px; }
 .result-changes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .change { background: #fff; padding: 3px 6px; border-radius: 6px; border: 1px solid #dcfce7; font-size: 12px; font-weight: bold; }
 
@@ -176,20 +127,26 @@ input, select { display: block; width: 100%; border: 1px solid var(--line); bord
 /* ==========================================================================
    [자산 상세(ASSETS) 영역 및 거래 버튼]
    ========================================================================== */
-/* 자산 내역을 3칸으로 나누는 그리드 */
 .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
-/* 개별 자산 항목 박스 (주택, 자동차, 대출, 현금 등) */
-.asset-box { background: #fcfcfc; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; }
-.asset-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.asset-header span { color: var(--text); font-size: 12px; font-weight: bold; }
-.asset-box strong { font-size: 12px; color: #111827; }
+/* [업데이트] 버튼이 오른쪽 가운데에 오도록 박스 레이아웃 및 여백 수정 */
+.asset-box { 
+  background: #fcfcfc; border: 1px solid var(--line); border-radius: 8px; 
+  padding: 12px; padding-right: 76px; /* 버튼 공간 확보 */
+  position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 70px;
+}
+.asset-header { margin-bottom: 6px; }
+.asset-header span { color: var(--text); font-size: 12px; font-weight: bold; display: block; }
+.asset-box strong { font-size: 13px; color: #111827; }
 .asset-box .highlight { background: var(--blue2); border-color: #bfdbfe; }
 
-/* 자산 항목 옆에 붙어있는 '거래' 호출용 작은 버튼 */
-.btn-trade { padding: 4px 18px; font-size: 11px; background: #e0e7ff; color: #4338ca; border-radius: 6px; font-weight: bold; border: 1px solid #c7d2fe; transition: 0.2s; }
+/* [업데이트] 거래 버튼 디자인 및 모바일 고정 레이아웃 */
+.btn-trade { 
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  padding: 8px 14px; font-size: 12px; background: #e0e7ff; color: #4338ca; 
+  border-radius: 6px; font-weight: bold; border: 1px solid #c7d2fe; transition: 0.2s;
+}
 .btn-trade:hover { background: #c7d2fe; }
-
 
 /* ==========================================================================
    [커리어 & 평판 구역]
@@ -203,27 +160,31 @@ input, select { display: block; width: 100%; border: 1px solid var(--line); bord
 /* ==========================================================================
    [인생 연표 및 자산 차트 영역]
    ========================================================================== */
-/* 차트가 그려질 캔버스 영역 */
 .chart-wrap { height: 180px; border: 1px solid var(--line); border-radius: 8px; padding: 6px; position: relative; margin: 8px 0 16px; background: #fff; }
 canvas { width: 100%; height: 100%; }
 
-/* 연대별(20대, 30대, 40대 등) 화면을 분할하는 탭 메뉴 디자인 */
 .history-tabs { display: flex; gap: 6px; margin-bottom: 12px; margin-top: 6px; }
 .tab-btn { flex: 1; padding: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; color: #475569; transition: 0.2s; }
 .tab-btn:hover { background: #e2e8f0; }
-.tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); } /* 현재 선택된 탭 */
+.tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-/* 가로로 긴 테이블 데이터를 스크롤할 수 있도록 감싸는 래퍼 */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
-th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; }
-th { background: #f8fafc; font-weight: bold; color: #334155; } /* 테이블 상단 제목줄 */
+/* [업데이트] 표 데이터들이 줄바꿈되지 않도록 설정 */
+th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { background: #f8fafc; font-weight: bold; color: #334155; } 
 
-/* 전체 기록을 세로로 길게 보는 모달(전체 인생 연표)의 타임라인 디자인 */
 .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 6px 0; }
 .timeline { position: relative; padding-left: 0; }
 .timeline-item { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow); font-size: 13px; border: 1px solid var(--line); }
 
+/* [업데이트] 특별한 이벤트가 있는 타임라인 항목 배경색 컬러 하이라이트 클래스 */
+.event-highlight-house { background-color: #f0f9ff; border-color: #bae6fd; } /* 연한 파란색 */
+.event-highlight-car { background-color: #faf5ff; border-color: #e9d5ff; } /* 연한 보라색 */
+.event-highlight-marriage { background-color: #fdf2f8; border-color: #fbcfe8; } /* 핑크색 */
+.event-highlight-divorce { background-color: #fef2f2; border-color: #fecaca; } /* 빨간색 */
+.event-highlight-promo { background-color: #fff7ed; border-color: #fed7aa; } /* 주황색 */
+.event-highlight-stock { background-color: #ecfccb; border-color: #d9f99d; } /* 연두색 */
 
 /* ==========================================================================
    [엔딩 화면 전용 스타일]
@@ -234,19 +195,15 @@ th { background: #f8fafc; font-weight: bold; color: #334155; } /* 테이블 상�
 
 
 /* ==========================================================================
-   [팝업/모달 창 (주식, 주택, 자동차 거래 창)]
+   [팝업/모달 창]
    ========================================================================== */
-/* 모달창 뒤를 어둡게 가려주는 오버레이 배경 */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, .6); display: flex; justify-content: center; align-items: center; z-index: 999; padding: 16px; }
-
-/* 모달 본체 흰색 카드 */
 .modal-card { background: #fff; border-radius: 16px; max-width: 520px; width: 100%; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,.2); max-height: 90vh; display: flex; flex-direction: column; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .modal-header h3 { margin: 0; font-size: 18px; }
 .btn-close { border: none; background: none; font-size: 18px; cursor: pointer; padding: 6px 8px; }
 .modal-desc { color: var(--muted); font-size: 13px; margin: 4px 0 14px; }
 
-/* 주식 거래 모달 내부의 개별 주식 항목 리스트 디자인 */
 .gics-sector-list { overflow-y: auto; display: grid; gap: 8px; margin-bottom: 12px; padding-right: 6px; }
 .sector-trade-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
 .sector-trade-item div strong { display: block; font-size: 14px; margin-bottom: 2px; }
@@ -258,10 +215,13 @@ th { background: #f8fafc; font-weight: bold; color: #334155; } /* 테이블 상�
    [모바일 반응형 레이아웃]
    ========================================================================== */
 @media(max-width:700px) {
-  /* 모바일 화면에서는 가로 배치를 세로 배치(1열 또는 2열)로 전환하여 깨짐 방지 */
   .triple-roulette-container { grid-template-columns: 1fr; gap: 8px; }
   .compact-grid, .ending-grid { grid-template-columns: repeat(2, 1fr); }
   .asset-grid { grid-template-columns: repeat(2, 1fr); }
   .profile-form { grid-template-columns: 1fr; }
   .profile-preview { grid-template-columns: repeat(2, 1fr); }
+  
+  /* [업데이트] 모바일 환경에서도 거래 버튼의 크기가 무너지지 않도록 고정 */
+  .btn-trade { width: 66px; padding: 8px 0; text-align: center; }
+  .asset-box { padding-right: 82px; }
 }
