@@ -37,7 +37,7 @@ function newGame(finalConfig) {
 
   const regionalHousing = getRegionalHousingLevels(finalConfig.currentRegion);
   let initHousing = { ...regionalHousing[0] };
-  let initCar = { ...carLevels[0] };
+  let initCar = { level: 0, name: "대중교통 이용", value: 0 }; // [업데이트] 자동차 초기화 형식 맞춤
   let initHouseAsset = 5000000;
   let initCarAsset = 0;
   let initCash = 5000000;
@@ -47,7 +47,9 @@ function newGame(finalConfig) {
     initHousing = { ...regionalHousing[1] };
     initHouseAsset = 10000000; initCash = 10000000; firstYearLivingCost = 7000000;
   } else if (chosenTier === 30000000) {
-    initHousing = { ...regionalHousing[1] }; initCar = { ...carLevels[1] };
+    initHousing = { ...regionalHousing[1] }; 
+    const c = carLevels[1];
+    initCar = { level: c.level, name: c.names[Math.floor(Math.random() * c.names.length)], value: c.value };
     initHouseAsset = 10000000; initCarAsset = 5000000; initCash = 15000000; firstYearLivingCost = 10000000;
   }
 
@@ -61,7 +63,6 @@ function newGame(finalConfig) {
     isStockPhase: false, 
     travelCooldown: 0,   
 
-    // [업데이트] 해당 턴(계절)에 실제 발생한 소득/지출만 기록하는 변수
     turnIncome: 0,
     turnExpense: 0,
 
@@ -77,6 +78,10 @@ function newGame(finalConfig) {
     cash: initCash, assets: { house: initHouseAsset, car: initCarAsset, stock: 0, etc: 0 },
     debt: 0, health: finalConfig.initialHealth, happiness: 70, stress: 25, reputation: 70,
     married: false, divorced: false, marriageYear: 0, lastTravelYear: 0, carHoldingYears: 0, children: 0,
+    
+    // [추가] 부부싸움 및 이혼 관련 상태 변수
+    hadMaritalQuarrel: false, quarrelYear: 0,
+
     housing: initHousing, car: initCar, currentStockSector: null, lastYearLivingCost: 0, history: [],
     lastEvent: `인생의 출발 (거주지: ${finalConfig.currentRegion}, 초기 자산: ${won(chosenTier)})`
   };
@@ -86,11 +91,11 @@ function totalAssets() { return game.cash + game.assets.house + game.assets.car 
 function netWorth() { return totalAssets() - game.debt; }
 
 function getChickenBasePay() {
-  if (!game || game.jobKey !== "entrepreneur") return 45000000;
-  if (game.career.title === "대형 프랜차이즈 대표") return 600000000;
+  if (!game || game.jobKey !== "entrepreneur") return 40000000;
+  if (game.career.title === "대형 프랜차이즈 대표") return 500000000;
   if (game.career.title === "동네 프랜차이즈 대표") return 250000000;
-  if (game.career.title === "1,2,3호점 주인") return 120000000;
-  return 45000000;
+  if (game.career.title === "1,2,3호점 주인") return 100000000;
+  return 40000000;
 }
 
 function checkChickenEnterpriseGrowth() {
@@ -99,12 +104,14 @@ function checkChickenEnterpriseGrowth() {
   const hasOperatedStore3For5Years = game.hasOpenedStore3 && (game.chickenStore3Years >= 5);
   if (hasOperatedStore3For5Years) {
     if (nw >= 3000000000 && game.career.title !== "대형 프랜차이즈 대표") {
-      game.career.title = "대형 프랜차이즈 대표"; game.annualIncome = Math.max(game.annualIncome, 600000000);
+      game.career.title = "대형 프랜차이즈 대표"; game.annualIncome = Math.max(game.annualIncome, 500000000);
       alert("축하합니다! 3호점 운영 5년 달성 및 순자산 30억을 돌파하여 전국구 [대형 프랜차이즈 대표]로 도약했습니다! (연소득 6억원 보장)");
+      game.lastEvent = "[승진] 대형 프랜차이즈 대표 등극";
     } 
     else if (nw >= 1000000000 && game.career.title !== "동네 프랜차이즈 대표" && game.career.title !== "대형 프랜차이즈 대표") {
       game.career.title = "동네 프랜차이즈 대표"; game.annualIncome = Math.max(game.annualIncome, 250000000);
       alert("축하합니다! 3호점 운영 5년 달성 및 자본금 10억원을 확보하여 [동네 프랜차이즈 대표]로 발돋움했습니다! (연소득 2.5억원 보장)");
+      game.lastEvent = "[승진] 동네 프랜차이즈 대표 등극";
     }
   }
 }
@@ -143,7 +150,6 @@ function recordHistory() {
     season: game.isStockPhase ? "증시/결산" : SEASONS[game.seasonIndex], 
     job: game.job, career: currentCareerTitle(), 
     
-    // [업데이트] 계절별 실제 발생 소득/지출 기록
     income: game.turnIncome,
     livingCost: game.turnExpense,
     
@@ -155,57 +161,21 @@ function recordHistory() {
   };
   game.history.push(h);
   
-  // 기록 후 해당 턴의 소득/지출 리셋
   game.turnIncome = 0;
   game.turnExpense = 0;
 }
 
 function createTravelEventObj(currentSeason) {
-  const setTravelFlags = () => {
-    game.travelCooldown = 8; 
-    game.hasTravelOccurredThisYear = true;
-  };
+  const setTravelFlags = () => { game.travelCooldown = 8; game.hasTravelOccurredThisYear = true; };
 
   return {
     id: "travel_event", type: "휴가", title: `✈️ ${currentSeason} 휴가 여행 계획`,
     desc: "바쁜 일상에서 벗어나 여행을 떠납니다. 힐링이 되지만 피로로 건강과 평판이 소폭 깎입니다.",
     ok: () => true,
     choices: [
-      {
-        text: "국내 힐링 여행 (비용 50만)",
-        result: "국내 명소에서 푹 쉬다 왔습니다. (행복 +8, 스트레스 -7, 평판 -4, 건강 -2)",
-        apply: () => {
-          if (game.cash >= 500000) {
-            game.cash -= 500000; game.happiness = clamp(game.happiness + 8);
-            game.stress = clamp(game.stress - 7); game.reputation = clamp(game.reputation - 4);
-            game.health = clamp(game.health - 2);
-            if (game.married) game.lastTravelYear = game.year;
-          }
-          setTravelFlags(); 
-        }
-      },
-      {
-        text: "해외 여행 (비용 300만)",
-        result: "해외에서 뜻깊은 추억을 쌓았습니다. (행복 +18, 스트레스 -12, 평판 -7, 건강 -5)",
-        apply: () => {
-          if (game.cash >= 3000000) {
-            game.cash -= 3000000; game.happiness = clamp(game.happiness + 18);
-            game.stress = clamp(game.stress - 12); game.reputation = clamp(game.reputation - 7);
-            game.health = clamp(game.health - 5);
-            if (game.married) game.lastTravelYear = game.year;
-          }
-          setTravelFlags(); 
-        }
-      },
-      { 
-        text: "집에서 휴식 (비용 0원)", 
-        result: "조용히 집에서 쉬며 체력을 비축했습니다. (스트레스 -3, 행복 -5)", 
-        apply: () => { 
-          game.stress = clamp(game.stress - 3); 
-          game.happiness = clamp(game.happiness - 5);
-          setTravelFlags(); 
-        } 
-      }
+      { text: "국내 힐링 여행 (비용 50만)", result: "국내 명소에서 푹 쉬다 왔습니다. (행복 +8, 스트레스 -7, 평판 -4, 건강 -2)", apply: () => { if (game.cash >= 500000) { game.cash -= 500000; game.happiness = clamp(game.happiness + 8); game.stress = clamp(game.stress - 7); game.reputation = clamp(game.reputation - 4); game.health = clamp(game.health - 2); if (game.married) game.lastTravelYear = game.year; } setTravelFlags(); } },
+      { text: "해외 여행 (비용 300만)", result: "해외에서 뜻깊은 추억을 쌓았습니다. (행복 +18, 스트레스 -12, 평판 -7, 건강 -5)", apply: () => { if (game.cash >= 3000000) { game.cash -= 3000000; game.happiness = clamp(game.happiness + 18); game.stress = clamp(game.stress - 12); game.reputation = clamp(game.reputation - 7); game.health = clamp(game.health - 5); if (game.married) game.lastTravelYear = game.year; } setTravelFlags(); } },
+      { text: "집에서 휴식 (비용 0원)", result: "조용히 집에서 쉬며 체력을 비축했습니다. (스트레스 -3, 행복 -5)", apply: () => { game.stress = clamp(game.stress - 3); game.happiness = clamp(game.happiness - 5); setTravelFlags(); } }
     ]
   };
 }
@@ -242,10 +212,7 @@ function checkHealthDiseaseEvent() {
       id: "health_tier4", type: "중증 질환", title: `🏥 ${currentSeason} 중증 질환 진단 및 긴급 대수술`,
       desc: `정밀 검진 결과 조기 치료가 시급한 중증 질환이 발견되어 입원 후 긴급 수술을 받았습니다. 수술비와 특실 입원비 ${won(cost)}이 지출됩니다.`,
       ok: () => true,
-      choices: [{
-        text: `수술비 지출 및 요양 치료 (${won(cost)})`, result: `대수술을 무사히 마치고 장기간 회복 치료에 들어갔습니다. (건강 -35, 스트레스 +35)`,
-        apply: () => { game.cash -= cost; game.health = clamp(game.health - 35); game.stress = clamp(game.stress + 35); game.happiness = clamp(game.happiness - 20); game.hasDiseaseL4Occurred = true; game.lastDiseaseAnyYear = game.year; }
-      }]
+      choices: [{ text: `수술비 지출 및 요양 치료 (${won(cost)})`, result: `대수술을 무사히 마치고 장기간 회복 치료에 들어갔습니다. (건강 -35, 스트레스 +35)`, apply: () => { game.cash -= cost; game.health = clamp(game.health - 35); game.stress = clamp(game.stress + 35); game.happiness = clamp(game.happiness - 20); game.hasDiseaseL4Occurred = true; game.lastDiseaseAnyYear = game.year; } }]
     };
   } else if (eventLevel === 3) {
     const cost = 2000000;
@@ -253,10 +220,7 @@ function checkHealthDiseaseEvent() {
       id: "health_tier3", type: "교통사고", title: `🚑 ${currentSeason} 불의의 교통사고 발생 및 입원 치료`,
       desc: `이동 중 발생한 차량 접촉 사고로 전치 4주의 부상을 입고 정형외과에 입원했습니다. 병원비 및 합의 처리비용 ${won(cost)}이 발생합니다.`,
       ok: () => true,
-      choices: [{
-        text: `치료비 납부 및 입원 치료 (${won(cost)})`, result: `입원 치료를 마쳤으나 당분간 재활이 필요합니다. (건강 -18, 스트레스 +20)`,
-        apply: () => { game.cash -= cost; game.health = clamp(game.health - 18); game.stress = clamp(game.stress + 20); game.lastDiseaseL3Year = game.year; game.lastDiseaseAnyYear = game.year; }
-      }]
+      choices: [{ text: `치료비 납부 및 입원 치료 (${won(cost)})`, result: `입원 치료를 마쳤으나 당분간 재활이 필요합니다. (건강 -18, 스트레스 +20)`, apply: () => { game.cash -= cost; game.health = clamp(game.health - 18); game.stress = clamp(game.stress + 20); game.lastDiseaseL3Year = game.year; game.lastDiseaseAnyYear = game.year; } }]
     };
   } else if (eventLevel === 2) {
     const cost = 300000;
@@ -264,10 +228,7 @@ function checkHealthDiseaseEvent() {
       id: "health_tier2", type: "부상 사고", title: `🩹 ${currentSeason} 일상생활 중 낙상 부상`,
       desc: `계단에서 발을 헛디뎌 발목 인대가 늘어나는 부상을 당했습니다. 반깁스 처치와 물리치료비 ${won(cost)}이 소요됩니다.`,
       ok: () => true,
-      choices: [{
-        text: `정형외과 치료 수용 (${won(cost)})`, result: `반깁스를 하고 2주간 통원 치료를 받았습니다. (건강 -8, 스트레스 +10)`,
-        apply: () => { game.cash -= cost; game.health = clamp(game.health - 8); game.stress = clamp(game.stress + 10); game.lastDiseaseL1L2Year = game.year; game.lastDiseaseAnyYear = game.year; }
-      }]
+      choices: [{ text: `정형외과 치료 수용 (${won(cost)})`, result: `반깁스를 하고 2주간 통원 치료를 받았습니다. (건강 -8, 스트레스 +10)`, apply: () => { game.cash -= cost; game.health = clamp(game.health - 8); game.stress = clamp(game.stress + 10); game.lastDiseaseL1L2Year = game.year; game.lastDiseaseAnyYear = game.year; } }]
     };
   } else if (eventLevel === 1) {
     const cost = 50000;
@@ -275,10 +236,7 @@ function checkHealthDiseaseEvent() {
       id: "health_tier1", type: "질병", title: `🤒 ${currentSeason} 환절기 급성 독감 및 감기몸살`,
       desc: `면역력 저하와 과로로 인해 고열과 오한을 동반한 심한 감기몸살을 앓았습니다. 이비인후과 진료비와 영양 수액비 ${won(cost)}이 지출됩니다.`,
       ok: () => true,
-      choices: [{
-        text: `수액 처방 및 약 복용 (${won(cost)})`, result: `주말 동안 푹 쉬며 수액을 맞고 기력을 회복했습니다. (건강 -3)`,
-        apply: () => { game.cash -= cost; game.health = clamp(game.health - 3); game.stress = clamp(game.stress + 4); game.lastDiseaseL1L2Year = game.year; game.lastDiseaseAnyYear = game.year; }
-      }]
+      choices: [{ text: `수액 처방 및 약 복용 (${won(cost)})`, result: `주말 동안 푹 쉬며 수액을 맞고 기력을 회복했습니다. (건강 -3)`, apply: () => { game.cash -= cost; game.health = clamp(game.health - 3); game.stress = clamp(game.stress + 4); game.lastDiseaseL1L2Year = game.year; game.lastDiseaseAnyYear = game.year; } }]
     };
   }
   return null;
@@ -289,7 +247,12 @@ function eventList() {
   const isSecondYearSpringOrLater = game.year > game.startYearRecorded;
 
   if (game.isStockPhase) {
-    const tEvent = THEME_EVENTS[Math.floor(Math.random() * THEME_EVENTS.length)];
+    // [업데이트] 나이에 따른 주식 뉴스 필터링 적용
+    const validThemeEvents = THEME_EVENTS.filter(e => game.age >= e.minAge && game.age <= e.maxAge);
+    // 조건에 맞는 테마 이벤트가 없으면 전체에서 추출 (안전망)
+    const tEventList = validThemeEvents.length > 0 ? validThemeEvents : THEME_EVENTS;
+    const tEvent = tEventList[Math.floor(Math.random() * tEventList.length)];
+    
     const upSector = THEME_SECTORS.find(s => s.id === tEvent.up);
     const downSector = THEME_SECTORS.find(s => s.id === tEvent.down);
 
@@ -305,6 +268,8 @@ function eventList() {
         const profit = Math.round(game.assets.stock * (currentUpRate / 100));
         game.assets.stock += profit;
         stockFluctuationLog = `<div style="color:#16a34a; margin-top:8px; font-weight:bold;">📈 [수혜 반영] 보유 중인 [${upSector.name}] 테마 주가가 +${currentUpRate}% 급등하여 ${won(profit)}의 평가 차익이 발생했습니다!</div>`;
+        // [업데이트] 급등 시 연표 하이라이팅을 위한 기록 추가
+        if (currentUpRate >= 30) game.lastEvent = `[주식급등] ${upSector.name} 테마 대폭발 수혜 (+${currentUpRate}%)`;
       } else if (game.currentStockSector === tEvent.down) {
         const loss = Math.round(game.assets.stock * (currentDownRate / 100));
         game.assets.stock -= loss;
@@ -412,6 +377,7 @@ function eventList() {
               game.career.promoTargetYears = Math.floor(Math.random() * 5) + 4; game.annualIncome = finalPay;
               game.cumulativeIncome += promoBonus; game.cash += promoBonus;
               game.reputation = clamp(game.reputation + 5); game.happiness = clamp(game.happiness + 20);
+              game.lastEvent = `[승진] ${nextTitle} 승진 성공`; // [업데이트] 하이라이팅 태그
             }
           }]
         });
@@ -426,7 +392,7 @@ function eventList() {
         desc: `1호점을 5년간 성공적으로 운영하고 평판(${game.reputation}점)을 쌓아 2호점을 출점합니다! 가맹/인테리어 비용 5,000만원이 현금에서 지출되며, 연소득이 대폭 증가합니다.`,
         ok: () => true,
         choices: [
-          { text: "현금 5,000만원 지출 및 2호점 개점식 진행", result: "직영 2호점이 대박을 터뜨리며 연소득이 3,000만원 증가했습니다!", apply: () => { game.cash -= 50000000; game.chickenStoreCount = 2; game.hasOpenedStore2 = true; game.chickenStore2Years = 0; game.annualIncome += 30000000; game.happiness += 15; } },
+          { text: "현금 5,000만원 지출 및 2호점 개점식 진행", result: "직영 2호점이 대박을 터뜨리며 연소득이 3,000만원 증가했습니다!", apply: () => { game.cash -= 50000000; game.chickenStoreCount = 2; game.hasOpenedStore2 = true; game.chickenStore2Years = 0; game.annualIncome += 30000000; game.happiness += 15; game.lastEvent = "[승진] 2호점 오픈 성공"; } },
           { text: "자금 여유를 위해 개점을 보류한다", result: "2호점 개점을 미루고 현재 매장 운영에 집중합니다.", apply: () => {} }
         ]
       });
@@ -437,7 +403,7 @@ function eventList() {
         desc: `2호점 오픈 후 5년의 노력 끝에 대망의 3호점을 개설합니다! 투자비 5,000만원이 지출되며, [1,2,3호점 주인]으로 승급합니다.`,
         ok: () => true,
         choices: [
-          { text: "현금 5,000만원 지출 및 3호점 오픈", result: "3개 매장을 거느린 지역구 거물로 도약했습니다!", apply: () => { game.cash -= 50000000; game.chickenStoreCount = 3; game.hasOpenedStore3 = true; game.career.title = "1,2,3호점 주인"; game.annualIncome = Math.max(game.annualIncome + 50000000, 120000000); game.happiness += 25; } },
+          { text: "현금 5,000만원 지출 및 3호점 오픈", result: "3개 매장을 거느린 지역구 거물로 도약했습니다!", apply: () => { game.cash -= 50000000; game.chickenStoreCount = 3; game.hasOpenedStore3 = true; game.career.title = "1,2,3호점 주인"; game.annualIncome = Math.max(game.annualIncome + 50000000, 120000000); game.happiness += 25; game.lastEvent = "[승진] 1,2,3호점 주인 승급"; } },
           { text: "안정적인 현금 보유를 위해 보류한다", result: "3호점 개점을 미루기로 결정했습니다.", apply: () => {} }
         ]
       });
@@ -483,7 +449,7 @@ function eventList() {
         ok: () => true,
         choices: [{
           text: "폐차 인수증 수령 및 폐차 완료 (차량 소멸)", result: "",
-          apply: function() { game.assets.car = 0; game.car = { ...carLevels[0] }; game.carHoldingYears = 0; game.carCheckCount = 0; game.stress = clamp(game.stress + 15); this.result = "차량이 완전히 폐차되어 대중교통 이용 상태로 복귀했습니다."; }
+          apply: function() { game.assets.car = 0; game.car = { level: 0, name: "대중교통 이용", value: 0 }; game.carHoldingYears = 0; game.carCheckCount = 0; game.stress = clamp(game.stress + 15); this.result = "차량이 완전히 폐차되어 대중교통 이용 상태로 복귀했습니다."; }
         }]
       });
     } else if (game.carHoldingYears >= 10) {
@@ -495,24 +461,48 @@ function eventList() {
     }
   }
 
+  // [업데이트] 이혼 조건 달성 시 바로 이혼하지 않고, 부부싸움 이벤트가 1년 전에 먼저 발생하도록 로직 수정
   if (game.married && !game.divorced) {
     const yearsWithoutTravel = game.year - (game.lastTravelYear || game.marriageYear || game.year);
     const isBroke = game.annualIncome < 25000000 || netWorth() < 0;
+    
     if ((yearsWithoutTravel >= 10 && Math.random() < 0.50) || isBroke) {
-      e.push({
-        id: "divorce_crisis", type: "가정 불화", title: `💔 ${currentSeason} 성격 차이 및 이혼 소송 청구`,
-        desc: yearsWithoutTravel >= 10 ? `결혼 생활 중 여행을 다녀오지 않은 지 ${yearsWithoutTravel}년이 흘렀습니다. 배우자가 이혼을 청구합니다.` : "경제난으로 배우자의 이혼 청구로 합의 이혼에 도달합니다.",
-        ok: () => true,
-        choices: [{
-          text: "이혼 합의 및 재산 50% 분할 확정", result: "",
-          apply: function() {
-            game.married = false; game.divorced = true; game.happiness = clamp(game.happiness - 40); game.stress = clamp(game.stress + 35); game.reputation = clamp(game.reputation - 15);
-            const lostCash = Math.round(Math.max(0, game.cash) * 0.5); const lostStock = Math.round(game.assets.stock * 0.5); const lostEtc = Math.round(game.assets.etc * 0.5);
-            game.cash -= lostCash; game.assets.stock -= lostStock; game.assets.etc -= lostEtc;
-            this.result = `이혼 절차가 마무리되었습니다. 재산 분할로 현금 ${won(lostCash)}, 주식 ${won(lostStock)}이 지급되었습니다.`;
-          }
-        }]
-      });
+      // 부부싸움을 아직 안 했다면 전조 증상 이벤트 발생
+      if (!game.hadMaritalQuarrel) {
+        e.push({
+          id: "marital_quarrel", type: "가정 불화", title: `💢 ${currentSeason} 잦은 다툼과 부부싸움`,
+          desc: "경제적 어려움 혹은 대화 부족으로 인해 배우자와 심한 다툼을 벌였습니다. 심각한 갈등의 전조증상입니다.",
+          ok: () => true,
+          choices: [{
+            text: "감정을 추스르며 인내한다", result: "갈등의 골이 깊어졌습니다. (스트레스 +20, 행복 -20)",
+            apply: function() {
+              game.hadMaritalQuarrel = true;
+              game.quarrelYear = game.year;
+              game.stress = clamp(game.stress + 20);
+              game.happiness = clamp(game.happiness - 20);
+              this.result = "대화가 단절되었고 마음고생이 심해집니다. 관계 회복이 필요합니다.";
+            }
+          }]
+        });
+      } 
+      // 부부싸움을 겪었고, 최소 1년이 지났다면 이혼 소송 발생
+      else if (game.year > game.quarrelYear) {
+        e.push({
+          id: "divorce_crisis", type: "가정 파탄", title: `💔 ${currentSeason} 성격 차이 및 이혼 소송 청구`,
+          desc: "지속적인 갈등을 회복하지 못하고 결국 합의 이혼에 도달합니다.",
+          ok: () => true,
+          choices: [{
+            text: "이혼 합의 및 재산 50% 분할 확정", result: "",
+            apply: function() {
+              game.married = false; game.divorced = true; game.happiness = clamp(game.happiness - 40); game.stress = clamp(game.stress + 35); game.reputation = clamp(game.reputation - 15);
+              const lostCash = Math.round(Math.max(0, game.cash) * 0.5); const lostStock = Math.round(game.assets.stock * 0.5); const lostEtc = Math.round(game.assets.etc * 0.5);
+              game.cash -= lostCash; game.assets.stock -= lostStock; game.assets.etc -= lostEtc;
+              game.lastEvent = `[이혼] 합의 이혼 및 재산 분할`; // [업데이트] 연표 하이라이팅용
+              this.result = `이혼 절차가 마무리되었습니다. 재산 분할로 현금 ${won(lostCash)}, 주식 ${won(lostStock)}이 지급되었습니다.`;
+            }
+          }]
+        });
+      }
     }
   }
 
@@ -577,13 +567,13 @@ function eventList() {
       } else if (game.age >= 45 && Math.random() < 0.60) {
         e.push({
           id: "marriage_intl", type: "인생", title: `💍 ${currentSeason} 국제결혼 주선`, desc: "지인의 주선으로 국제결혼 만남이 성사되었습니다.", ok: () => true,
-          choices: [{ text: "결혼 진행 (1,500만)", result: "새 가정을 꾸렸습니다.", apply: () => { if (game.cash >= 15000000) game.cash -= 15000000; else game.debt += 15000000; game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 20; } }, { text: "평생 솔로 선언", result: "싱글라이프 선언!", apply: () => { game.declaredSolo = true; game.stress -= 10; } }]
+          choices: [{ text: "결혼 진행 (1,500만)", result: "새 가정을 꾸렸습니다.", apply: () => { if (game.cash >= 15000000) game.cash -= 15000000; else game.debt += 15000000; game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 20; game.lastEvent = "[결혼] 국제결혼 성공"; } }, { text: "평생 솔로 선언", result: "싱글라이프 선언!", apply: () => { game.declaredSolo = true; game.stress -= 10; } }]
         });
       } else if (game.age >= 30 && game.age < 35 && Math.random() < 0.70) {
         e.push({
           id: "marriage_high", type: "인생", title: `💍 ${currentSeason} 결혼 결심`, desc: "안정적인 기반을 바탕으로 연인과 결혼을 결심합니다.", ok: () => true,
           choices: [
-            { text: "결혼식 진행 (3,000만)", result: "결혼식을 올렸습니다!", apply: () => { if (game.cash >= 30000000) game.cash -= 30000000; else game.debt += 30000000; game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 25; game.marriageDelayCount = 0; } },
+            { text: "결혼식 진행 (3,000만)", result: "결혼식을 올렸습니다!", apply: () => { if (game.cash >= 30000000) game.cash -= 30000000; else game.debt += 30000000; game.married = true; game.marriageYear = game.year; game.lastTravelYear = game.year; game.happiness += 25; game.marriageDelayCount = 0; game.lastEvent = "[결혼] 사랑하는 연인과 결혼"; } },
             { text: "미룬다", result: "", apply: function() {
               game.marriageDelayCount = (game.marriageDelayCount || 0) + 1;
               if (game.marriageDelayCount >= 3) { game.health = clamp(game.health - 10); game.happiness = clamp(game.happiness - 25); game.stress = clamp(game.stress + 20); game.marriageBlockedUntilYear = game.year + 2; game.marriageDelayCount = 0; this.result = "💔 [이별] 계속해서 미루자 여자친구가 이별을 통보했습니다. (결혼 차단 2년)"; }
@@ -614,7 +604,12 @@ function eventList() {
 function generateEvent() {
   const list = eventList();
   currentEvent = list[Math.floor(Math.random() * list.length)];
-  game.lastEvent = `[${game.isStockPhase ? "증시/결산" : SEASONS[game.seasonIndex]}] ${currentEvent.title}`;
+  
+  // [업데이트] 이벤트가 주식 급등, 승진, 결혼 등 특수 태그를 갖고 있지 않을 때만 기본 제목으로 덮어씌움
+  if (!game.lastEvent || (!game.lastEvent.includes("[집구매]") && !game.lastEvent.includes("[자동차구매]") && !game.lastEvent.includes("[승진]") && !game.lastEvent.includes("[결혼]") && !game.lastEvent.includes("[이혼]") && !game.lastEvent.includes("[주식급등]"))) {
+    game.lastEvent = `[${game.isStockPhase ? "증시/결산" : SEASONS[game.seasonIndex]}] ${currentEvent.title}`;
+  }
+  
   renderEvent();
 }
 
@@ -628,7 +623,6 @@ function resolveEvent(i) {
   
   c.apply();
   
-  // [업데이트] 이벤트로 인한 직접적인 현금 증감량을 해당 시즌의 소득/지출에 기록
   const cashDiff = game.cash - beforeCash;
   if (cashDiff > 0) game.turnIncome += cashDiff;
   else if (cashDiff < 0) game.turnExpense += Math.abs(cashDiff);
@@ -640,9 +634,11 @@ function resolveEvent(i) {
   $("resultText").textContent = c.result || "처리가 완료되었습니다.";
   const changes = [["현금", game.cash - beforeCash], ["주식", game.assets.stock - beforeStock], ["평판", game.reputation - beforeRep]].filter(x => x[1] !== 0).map(x => `<span class="change">${x[0]} ${typeof x[1] === "number" && Math.abs(x[1]) > 1000 ? won(x[1]) : (x[1] > 0 ? "+" : "") + x[1]}</span>`).join("");
   $("resultChanges").innerHTML = changes || '<span class="change">변동 없음</span>';
+  
   $("resultBox").classList.remove("hidden");
   [...document.querySelectorAll(".choice")].forEach(b => b.disabled = true);
-  $("eventNextBtn").disabled = false;
+  
+  // [업데이트] 다음으로 넘어가기 버튼 비활성화 해제 대신 삭제됨. 결과창 자체가 클릭 가능해집니다.
   updateUI();
   eventResolved = true;
 }
@@ -654,6 +650,12 @@ function advanceYear() {
   if (game.isStockPhase) {
     game.isStockPhase = false;
     recordHistory(); 
+    // 특수 이벤트 태그 초기화
+    if(game.lastEvent) {
+      if (game.lastEvent.includes("[집구매]") || game.lastEvent.includes("[자동차구매]") || game.lastEvent.includes("[결혼]") || game.lastEvent.includes("[이혼]") || game.lastEvent.includes("[승진]") || game.lastEvent.includes("[주식급등]")) {
+        game.lastEvent = "";
+      }
+    }
     generateEvent(); 
     updateUI();
     return;
@@ -693,7 +695,6 @@ function advanceYear() {
     
     const totalAnnualLivingCost = baseLivingCost + housingAnnualCost;
     
-    // [업데이트] 주거비/생활비를 해당 시즌 지출로 기록
     game.cash -= totalAnnualLivingCost; 
     game.turnExpense += totalAnnualLivingCost;
     game.lastYearLivingCost = totalAnnualLivingCost;
@@ -711,7 +712,6 @@ function advanceYear() {
         game.assets.house += increaseDeposit; 
         game.housing.deposit += increaseDeposit; 
         
-        // [업데이트] 전세 인상금액도 지출로 기록
         game.cash -= increaseDeposit;
         game.turnExpense += increaseDeposit;
         
@@ -782,7 +782,6 @@ function advanceYear() {
         game.annualIncome = Math.round((game.annualIncome * (1.02 + Math.random() * 0.03)) / 10000) * 10000;
       }
       
-      // [업데이트] 당해 연봉을 해당 시즌(겨울/증시)의 소득으로 기록
       game.cash += game.annualIncome; 
       game.turnIncome += game.annualIncome;
       game.cumulativeIncome += game.annualIncome;
@@ -792,7 +791,14 @@ function advanceYear() {
   }
 
   recalculateHousingAndLifestyle(); 
-  recordHistory(); // 시즌 결산 및 소득/지출 기록 저장 후 리셋
+  recordHistory(); 
+  
+  if(game.lastEvent) {
+    if (game.lastEvent.includes("[집구매]") || game.lastEvent.includes("[자동차구매]") || game.lastEvent.includes("[결혼]") || game.lastEvent.includes("[이혼]") || game.lastEvent.includes("[승진]") || game.lastEvent.includes("[주식급등]")) {
+      game.lastEvent = "";
+    }
+  }
+  
   if (game.age >= 60 && game.seasonIndex === 3) { endGame(); return; }
   generateEvent(); 
   updateUI();
