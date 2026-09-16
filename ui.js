@@ -75,7 +75,7 @@ function renderEvent() {
     $("choices").appendChild(b);
   });
   $("resultBox").classList.add("hidden");
-  $("eventNextBtn").disabled = true;
+  // [업데이트] eventNextBtn 버튼이 삭제되었으므로 해당 버튼 제어 코드는 제거되었습니다.
 }
 
 function updateUI() {
@@ -112,6 +112,8 @@ function updateUI() {
   updateActionButtonsLabel(); renderHistory(); renderTimeline(); drawChart("assetChart");
 }
 
+
+
 function updateActionButtonsLabel() {
   const regionalHousing = getRegionalHousingLevels(game.currentRegion);
   const curHLevel = game.housing.level !== undefined ? game.housing.level : 0;
@@ -123,10 +125,12 @@ function updateActionButtonsLabel() {
     if (curHLevel <= 0) { $("houseDownBtn").textContent = "📉 주택 DOWN (최저 등급)"; $("houseDownBtn").disabled = true; }
     else { $("houseDownBtn").textContent = `📉 주택 DOWN (${regionalHousing[curHLevel - 1].name})`; $("houseDownBtn").disabled = false; }
   }
+  
+  // [수정됨] 자동차 UP/DOWN 버튼에 등급(Level) 표시
   const curCLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if ($("carUpBtn")) {
     if (curCLevel >= carLevels.length - 1) { $("carUpBtn").textContent = "🚗 차량 UP (최고 등급)"; $("carUpBtn").disabled = true; }
-    else { $("carUpBtn").textContent = `🚗 차량 UP (${carLevels[curCLevel + 1].name})`; $("carUpBtn").disabled = false; }
+    else { $("carUpBtn").textContent = `🚗 차량 UP (${curCLevel + 1}등급)`; $("carUpBtn").disabled = false; }
   }
   if ($("carNewBtn")) {
     if (curCLevel <= 0) { $("carNewBtn").disabled = true; }
@@ -134,11 +138,16 @@ function updateActionButtonsLabel() {
   }
   if ($("carDownBtn")) {
     if (curCLevel <= 0) { $("carDownBtn").textContent = "📉 차량 DOWN (차량 없음)"; $("carDownBtn").disabled = true; }
-    else { $("carDownBtn").textContent = `📉 차량 DOWN (${carLevels[curCLevel - 1].name}: 현금 확보)`; $("carDownBtn").disabled = false; }
+    else { 
+      const downLabel = curCLevel - 1 === 0 ? "대중교통" : `${curCLevel - 1}등급`;
+      $("carDownBtn").textContent = `📉 차량 DOWN (${downLabel}: 현금 확보)`; 
+      $("carDownBtn").disabled = false; 
+    }
   }
 }
 
-// [업데이트] 탭 기능 및 연대별 기록 분할 표시
+
+// 탭 기능 및 연대별 기록 분할 표시
 let currentTableTab = 2; // 기본값: 20대
 let currentHistoryTab = 2;
 
@@ -187,10 +196,21 @@ function renderTimeline() {
   const decadeEnd = decadeStart + 9;
   const filtered = game.history.filter(h => h.age >= decadeStart && h.age <= decadeEnd);
 
-  $("timeline").innerHTML = filtered.map(h => `
-    <article class="timeline-item">
+  $("timeline").innerHTML = filtered.map(h => {
+    // [업데이트] 특별한 이벤트 키워드 검출을 통한 배경색(highlightClass) 적용
+    let highlightClass = "";
+    const evt = h.event || "";
+    if (evt.includes("[집구매]")) highlightClass = "event-highlight-house";
+    else if (evt.includes("[자동차구매]")) highlightClass = "event-highlight-car";
+    else if (evt.includes("[결혼]")) highlightClass = "event-highlight-marriage";
+    else if (evt.includes("[이혼]")) highlightClass = "event-highlight-divorce";
+    else if (evt.includes("[승진]")) highlightClass = "event-highlight-promo";
+    else if (evt.includes("[주식급등]")) highlightClass = "event-highlight-stock";
+
+    return `
+    <article class="timeline-item ${highlightClass}">
       <div style="font-weight:bold">${h.age}세 (${h.year} ${h.season}) - ${h.job} (${h.career})</div>
-      <div style="margin-top:6px;color:#475569; line-height:1.4;">${h.event}</div>
+      <div style="margin-top:6px;color:#475569; line-height:1.4;">${evt}</div>
       <div style="margin-top:8px; font-size:12px;">
         소득: <span style="color:#16a34a">${won(h.income)}</span> | 
         지출: <span style="color:#dc2626">${won(h.livingCost)}</span> | 
@@ -198,10 +218,10 @@ function renderTimeline() {
         <strong>순자산: ${won(h.netWorth)}</strong>
       </div>
     </article>
-  `).join("");
+  `}).join("");
 }
 
-// [업데이트] 순자산 기준 특정 연령대 막대그래프 렌더링
+// 순자산 기준 특정 연령대 막대그래프 렌더링
 function drawChart(id) {
   const canvas = $(id); if (!canvas || !game || !game.history.length) return;
   const ctx = canvas.getContext("2d");
@@ -213,24 +233,22 @@ function drawChart(id) {
   const pad = { l: 60, r: 15, t: 25, b: 25 };
   const targetAges = [20, 25, 30, 35, 40, 45, 50, 55, 60];
   
-  // 지정된 연령대에 도달했을 때의 마지막 순자산 추출
   const dataPoints = targetAges.map(age => {
     const entries = game.history.filter(h => h.age === age);
     if (entries.length > 0) return entries[entries.length - 1].netWorth;
-    return null; // 아직 해당 나이에 도달하지 않음
+    return null;
   });
   
   const validData = dataPoints.filter(v => v !== null);
   if (validData.length === 0) return;
   
-  const maxVal = Math.max(...validData, 10000000); // 최소 축 단위 보정
-  const minVal = Math.min(...validData, 0); // 마이너스 자산 지원
+  const maxVal = Math.max(...validData, 10000000); 
+  const minVal = Math.min(...validData, 0); 
   const range = maxVal - minVal;
   
   ctx.clearRect(0, 0, w, h);
   ctx.strokeStyle = "#e5e7eb"; ctx.fillStyle = "#6b7280"; ctx.font = "11px Arial";
   
-  // Y축 5등분 가이드라인
   for (let i = 0; i <= 4; i++) { 
      const val = maxVal - range * (i / 4);
      const y = pad.t + (h - pad.t - pad.b) * (i / 4); 
@@ -259,7 +277,7 @@ function drawChart(id) {
          const barH = (Math.abs(val) / range) * ph;
          const barX = xCenter - barWidth / 2;
          
-         ctx.fillStyle = val >= 0 ? "#3b82f6" : "#ef4444"; // +는 파란색, -는 붉은색
+         ctx.fillStyle = val >= 0 ? "#3b82f6" : "#ef4444";
          if (val >= 0) {
              ctx.fillRect(barX, zeroY - barH, barWidth, barH);
          } else {
@@ -299,7 +317,6 @@ function buySpecificStockSector(sectorId) {
 function sellAllStock() { if (game.assets.stock <= 0) return alert("보유 주식이 없습니다."); const v = game.assets.stock; game.cash += v; game.assets.stock = 0; game.currentStockSector = null; alert(`현금 ${won(v)} 확보.`); updateUI(); closeStockModal(); }
 
 // ======================== 주택 / 차량 조작 메뉴 연결 로직 ========================
-
 function openHouseMenuModal() { $("houseMenuModal").classList.remove("hidden"); }
 function closeHouseMenuModal() { $("houseMenuModal").classList.add("hidden"); }
 function openCarMenuModal() { $("carMenuModal").classList.remove("hidden"); }
@@ -317,7 +334,8 @@ function openHouseModal(nextHouse, availableHousingFunds, loanMax, downPayment, 
     game.assets.house = nextHouse.houseValue; 
     game.debt = loanMax; 
     game.housing = { ...nextHouse, owned: true, deposit: 0 }; 
-    game.happiness = clamp(game.happiness + 15); 
+    game.happiness = clamp(game.happiness + 15);
+    game.lastEvent = `[집구매] ${nextHouse.name} (대출) 확보`; // [업데이트] 연표 기록 하이라이팅용 태그 추가
     closeHouseModal(); closeHouseMenuModal(); updateUI(); 
   };
   
@@ -328,6 +346,7 @@ function openHouseModal(nextHouse, availableHousingFunds, loanMax, downPayment, 
     game.debt = 0; 
     game.housing = { ...nextHouse, owned: true, deposit: 0 }; 
     game.happiness = clamp(game.happiness + 20); 
+    game.lastEvent = `[집구매] ${nextHouse.name} (일시불) 확보`; // [업데이트] 연표 기록 하이라이팅용 태그 추가
     closeHouseModal(); closeHouseMenuModal(); updateUI(); 
   };
   
@@ -366,6 +385,7 @@ function houseUp() {
     game.cash = game.cash + availableHousingFunds - next.houseValue; 
     game.assets.house = next.houseValue; game.debt = 0; 
     game.housing = { ...next, owned: true, deposit: 0 }; game.happiness = clamp(game.happiness + 25);
+    game.lastEvent = `[집구매] ${next.name} 상향 확보`; // [업데이트] 연표 기록 하이라이팅용 태그 추가
   } else { 
     const diff = next.deposit - availableHousingFunds; 
     const confirmMsg = `[상향 이사 견적]\n\n대상 주택: ${next.name} (보증금 ${won(next.deposit)})\n기존 보증금 환급: +${won(availableHousingFunds)}\n추가 필요 금액: ${won(diff)}\n\n이사를 진행하시겠습니까?`;
@@ -400,17 +420,51 @@ function houseDown() {
   closeHouseMenuModal(); updateUI();
 }
 
+// [업데이트] 현금 자산으로 남은 대출 전액 상환하기 로직 추가
+function repayLoan() {
+  if (!game) return;
+  if (game.debt <= 0) {
+    return alert("현재 상환할 대출 부채가 없습니다.");
+  }
+  if (game.cash < game.debt) {
+    return alert(`현금이 부족합니다. 대출은 전액 상환만 가능하며, 현금 ${won(game.debt)}이 필요합니다.`);
+  }
+  if (confirm(`현재 대출금 ${won(game.debt)}을 전액 상환하시겠습니까?\n(상환 시 주택은 완전한 자가로 전환되며, 대출 이자가 더 이상 나가지 않습니다.)`)) {
+    game.cash -= game.debt;
+    game.debt = 0;
+    if (game.housing) game.housing.loanRate = 0; 
+    game.lastEvent = "[집구매] 대출금 전액 상환 완료 및 완전한 자가 확보"; // [업데이트] 연표 기록 하이라이팅용 태그 추가
+    alert("대출 상환이 완료되었습니다! 이제 완전한 자가 주택입니다.");
+    updateUI();
+  }
+}
+
+
+// [수정됨] 차종 배열(names)에서 랜덤으로 차량을 뽑아 game.car 에 저장
 function carUp() {
   const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if (curLevel >= carLevels.length - 1) return alert("최고급 차량입니다.");
-  const next = carLevels[curLevel + 1]; const needCash = next.value - Math.round(game.assets.car * 0.9);
+  const next = carLevels[curLevel + 1]; 
+  const needCash = next.value - Math.round(game.assets.car * 0.9);
   if (!confirm(`차량을 업그레이드하시겠습니까?\n필요 현금: ${won(needCash)}`)) return;
   if (game.cash < needCash) return alert(`현금이 부족합니다.`);
-  game.cash -= needCash; game.assets.car = next.value; game.car = { ...next }; game.carHoldingYears = 0; game.carCheckCount = 0; game.happiness = clamp(game.happiness + 8); 
-  closeCarMenuModal(); updateUI();
+  
+  // 랜덤 자동차 뽑기
+  const randomCarName = next.names[Math.floor(Math.random() * next.names.length)];
+  
+  game.cash -= needCash; 
+  game.assets.car = next.value; 
+  game.car = { level: next.level, name: randomCarName, value: next.value }; 
+  game.carHoldingYears = 0; 
+  game.carCheckCount = 0; 
+  game.happiness = clamp(game.happiness + 8); 
+  game.lastEvent = `[자동차구매] ${randomCarName} 업그레이드`; 
+  closeCarMenuModal(); 
+  updateUI();
 }
 
-// [업데이트] 동일 등급 신차 교환 (감가/노후도 초기화)
+
+
 function carNew() {
   const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if (curLevel <= 0) return alert("보유한 차량이 없어 신차 교환이 불가능합니다.");
@@ -421,19 +475,40 @@ function carNew() {
   if (!confirm(`[동일 등급 신차 교환]\n기존 차량 처분 보상액: ${won(tradeInVal)}\n동일 신차 구입가: ${won(targetCar.value)}\n추가 필요 현금: ${won(needCash)}\n\n신차로 교체하여 차량 노후도를 리셋하시겠습니까?`)) return;
   if (game.cash < needCash) return alert(`현금이 부족합니다. 추가로 ${won(needCash - game.cash)}이 필요합니다.`);
   
-  game.cash -= needCash; game.assets.car = targetCar.value; game.car = { ...targetCar }; 
-  game.carHoldingYears = 0; game.carCheckCount = 0; game.happiness = clamp(game.happiness + 5); 
-  closeCarMenuModal(); updateUI();
+  // 랜덤 자동차 뽑기
+  const randomCarName = targetCar.names[Math.floor(Math.random() * targetCar.names.length)];
+  
+  game.cash -= needCash; 
+  game.assets.car = targetCar.value; 
+  game.car = { level: targetCar.level, name: randomCarName, value: targetCar.value }; 
+  game.carHoldingYears = 0; 
+  game.carCheckCount = 0; 
+  game.happiness = clamp(game.happiness + 5); 
+  game.lastEvent = `[자동차구매] ${randomCarName} 신차 교환`; 
+  closeCarMenuModal(); 
+  updateUI();
 }
+
 
 function carDown() {
   const curLevel = game.car.level !== undefined ? game.car.level : (game.assets.car > 0 ? 1 : 0);
   if (curLevel <= 0) return alert("차량이 없습니다.");
-  const prev = carLevels[curLevel - 1]; const getCash = Math.round(game.assets.car * 0.9) - prev.value;
+  const prev = carLevels[curLevel - 1]; 
+  const getCash = Math.round(game.assets.car * 0.9) - prev.value;
   if (!confirm(`차량을 다운그레이드하시겠습니까?\n현금 확보액: ${won(getCash)}`)) return;
-  game.cash += getCash; game.assets.car = prev.value; game.car = { ...prev }; game.carHoldingYears = 0; game.carCheckCount = 0; 
-  closeCarMenuModal(); updateUI();
+  
+  // 랜덤 자동차 뽑기 (대중교통일 경우 배열에 1개밖에 없으므로 자연스럽게 할당됨)
+  const randomCarName = prev.names[Math.floor(Math.random() * prev.names.length)];
+  
+  game.cash += getCash; 
+  game.assets.car = prev.value; 
+  game.car = { level: prev.level, name: randomCarName, value: prev.value }; 
+  game.carHoldingYears = 0; 
+  game.carCheckCount = 0; 
+  closeCarMenuModal(); 
+  updateUI();
 }
+
 
 function handleHomeReset() {
   if (confirm("다시 인생을 처음부터 시작하겠습니까?")) {
@@ -553,7 +628,9 @@ function setupApplication() {
   if ($("rouletteStartBtn")) $("rouletteStartBtn").onclick = runTripleSlotSpin;
   if ($("rouletteConfirmBtn")) $("rouletteConfirmBtn").onclick = finalizeGameStart;
 
-  if ($("eventNextBtn")) $("eventNextBtn").onclick = advanceYear;
+  // [업데이트] 결과 확인창 박스를 클릭했을 때 다음 턴(advanceYear)으로 넘어가도록 제어 변경
+  if ($("resultBox")) $("resultBox").onclick = advanceYear;
+  
   if ($("lifeRecordBtn")) $("lifeRecordBtn").onclick = () => show("recordScreen");
   if ($("closeRecordBtn")) $("closeRecordBtn").onclick = () => { if (game && game.age >= 60) show("endScreen"); else show("gameScreen"); };
 
